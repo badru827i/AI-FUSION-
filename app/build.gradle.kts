@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.aifusion.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aifusion.app"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "4.0.0"
     }
