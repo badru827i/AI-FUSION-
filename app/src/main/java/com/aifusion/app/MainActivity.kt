@@ -1,12 +1,10 @@
 package com.aifusion.app
 
 import android.os.Bundle
-import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -114,7 +112,7 @@ private fun AiFusionApp() {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var clientId by rememberSaveable { mutableStateOf("") }
     var savedClientId by rememberSaveable { mutableStateOf("") }
-    var account by rememberSaveable(stateSaver = null) { mutableStateOf<GoogleAccountUi?>(null) }
+    var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
 
     var draft by rememberSaveable { mutableStateOf("") }
     var nextId by rememberSaveable { mutableStateOf(1L) }
@@ -250,8 +248,8 @@ private fun AiFusionApp() {
                     onSaveClientId = { savedClientId = clientId.trim() },
                     onSignIn = {
                         val id = savedClientId.trim()
-                        if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) return@SettingsScreen
-                        scope.launch {
+                        if (id.isNotBlank() && id.contains(".apps.googleusercontent.com")) {
+                            scope.launch {
                             try {
                                 val googleIdOption = GetGoogleIdOption.Builder()
                                     .setServerClientId(id)
@@ -289,6 +287,7 @@ private fun AiFusionApp() {
                             } catch (_: Exception) {
                                 // Keep UI stable; provider/backend errors are handled in later auth layer.
                             }
+                        }
                         }
                     },
                     onBack = { showSettings = false }
