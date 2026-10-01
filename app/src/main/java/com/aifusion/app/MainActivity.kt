@@ -2,12 +2,12 @@ package com.aifusion.app
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -95,6 +95,10 @@ import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
 import com.aifusion.app.core.DeviceOptimizer
 import com.aifusion.app.core.LocalChatStore
+import com.aifusion.app.core.LocalModel
+import com.aifusion.app.core.ModelManager
+import com.aifusion.app.core.ResourceManager
+import com.aifusion.app.core.ResourceStatus
 import com.aifusion.app.core.PerformanceMode
 import com.aifusion.app.core.detectLanguage
 import com.aifusion.app.core.localResponse
@@ -106,7 +110,7 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 private enum class AppScreen {
-    CHAT, HISTORY, SKILLS, RESEARCH, DEVICE, SETTINGS
+    CHAT, HISTORY, SKILLS, RESEARCH, DEVICE, MODEL_MANAGER, SETTINGS
 }
 
 private data class GoogleAccountUi(
@@ -133,6 +137,10 @@ private fun AiFusionApp() {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val store = remember(context) { LocalChatStore(context) }
+    val modelStore = remember(context) { ModelManager(context) }
+
+    var models by remember { mutableStateOf(modelStore.list()) }
+    var resourceStatus by remember { mutableStateOf(ResourceManager.status(context)) }
 
     var screen by rememberSaveable { mutableStateOf(AppScreen.CHAT) }
     var sessionId by rememberSaveable {
@@ -289,6 +297,49 @@ private fun AiFusionApp() {
         }
     }
 
+    val modelPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
+            val name = context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    cursor.getString(0)
+                } else {
+                    null
+                }
+            } ?: uri.lastPathSegment ?: "local-model"
+
+            val sizeBytes = context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.SIZE),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else 0L
+            } ?: 0L
+
+            val format = name.substringAfterLast('.', "unknown").lowercase()
+            if (format == "onnx" || format == "tflite" || format == "lite") {
+                modelStore.add(uri, name, format, sizeBytes)
+                models = modelStore.list()
+            }
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -337,6 +388,11 @@ private fun AiFusionApp() {
                         screen = AppScreen.DEVICE
                         scope.launch { drawerState.close() }
                     }
+                    DrawerItem(Icons.Outlined.Memory, "Model Manager") {
+                        models = modelStore.list()
+                        screen = AppScreen.MODEL_MANAGER
+                        scope.launch { drawerState.close() }
+                    }
                     DrawerItem(Icons.Outlined.Settings, "Settings") {
                         screen = AppScreen.SETTINGS
                         scope.launch { drawerState.close() }
@@ -370,6 +426,7 @@ private fun AiFusionApp() {
                                 AppScreen.SKILLS -> "AI Skills"
                                 AppScreen.RESEARCH -> "Research Core"
                                 AppScreen.DEVICE -> "Smart Device"
+                                AppScreen.MODEL_MANAGER -> "Model Manager"
                                 AppScreen.SETTINGS -> "Settings"
                             },
                             fontWeight = FontWeight.SemiBold
@@ -461,6 +518,17 @@ private fun AiFusionApp() {
                     }
                 )
 
+                AppScreen.MODEL_MANAGER -> ModelManagerScreen(
+                    modifier = Modifier.padding(padding),
+                    models = models,
+                    modelTier = capabilities.modelTier,
+                    onImport = { modelPickerLauncher.launch(arrayOf("*/*")) },
+                    onDelete = {
+                        modelStore.remove(it)
+                        models = modelStore.list()
+                    }
+                )
+
                 AppScreen.SETTINGS -> SettingsScreen(
                     modifier = Modifier.padding(padding),
                     clientId = clientId,
@@ -470,6 +538,11 @@ private fun AiFusionApp() {
                     onShowClientId = { showSettingsPassword = !showSettingsPassword },
                     onClientIdChange = { clientId = it },
                     onSaveClientId = { savedClientId = clientId.trim() },
+                    resourceStatus = resourceStatus,
+                    onClearCache = {
+                        ResourceManager.clearTemporaryCache(context)
+                        resourceStatus = ResourceManager.status(context)
+                    },
                     onSignIn = {
                         val id = savedClientId.trim()
                         if (id.isNotBlank() && id.contains(".apps.googleusercontent.com")) {
@@ -775,6 +848,8 @@ private fun SettingsScreen(
     clientId: String,
     savedClientId: String,
     account: GoogleAccountUi?,
+    resourceStatus: ResourceStatus,
+    onClearCache: () -> Unit,
     showClientId: Boolean,
     onShowClientId: () -> Unit,
     onClientIdChange: (String) -> Unit,
@@ -859,8 +934,32 @@ private fun SettingsScreen(
             }
         }
 
+        Card(
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            )
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text("Compression & RAM Manager", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Available RAM: " + resourceStatus.availableRamMb + " MB",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    "App cache: " + resourceStatus.appCacheMb + " MB",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(10.dp))
+                TextButton(onClick = onClearCache) {
+                    Text("Clear temporary cache")
+                }
+            }
+        }
+
         Text(
-            "Storage: chat history is compressed and kept on-device. Network is reserved for web research and future backend integration.",
+            "Storage: chat history is GZIP-compressed and kept on-device. Network is reserved for web research and future backend integration.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
