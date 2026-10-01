@@ -204,9 +204,12 @@ fun ResearchScreen(
         if (query.isBlank() || running) return
         running = true
         status = "Running 3 parallel research agents…"
-        results = runCatching { ResearchCore.research(query) }
-            .onFailure { status = "Research error: " + (it.message ?: "unknown") }
-            .getOrElse { emptyList() }
+        try {
+            results = ResearchCore.research(query)
+        } catch (error: Exception) {
+            results = emptyList()
+            status = "Research error: " + (error.message ?: "unknown")
+        }
         if (results.isNotEmpty()) {
             status = "Agents finished. Results are source previews, not guaranteed fact verification."
         } else if (status.startsWith("Running")) {
