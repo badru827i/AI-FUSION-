@@ -170,8 +170,9 @@ private fun AiFusionApp() {
     }
 
     fun speak(text: String) {
-        val bm = tts.setLanguage(Locale("ms", "MY")) == TextToSpeech.LANG_AVAILABLE ||
-            tts.setLanguage(Locale("ms", "MY")) == TextToSpeech.LANG_COUNTRY_AVAILABLE
+        val languageResult = tts.setLanguage(Locale("ms", "MY"))
+        val bm = languageResult == TextToSpeech.LANG_AVAILABLE ||
+            languageResult == TextToSpeech.LANG_COUNTRY_AVAILABLE
         if (!bm) {
             tts.language = Locale.ENGLISH
         }
@@ -471,8 +472,8 @@ private fun AiFusionApp() {
                     onSaveClientId = { savedClientId = clientId.trim() },
                     onSignIn = {
                         val id = savedClientId.trim()
-                        if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) return@SettingsScreen
-                        scope.launch {
+                        if (id.isNotBlank() && id.contains(".apps.googleusercontent.com")) {
+                            scope.launch {
                             try {
                                 val googleIdOption = GetGoogleIdOption.Builder()
                                     .setServerClientId(id)
@@ -509,6 +510,7 @@ private fun AiFusionApp() {
                                 }
                             } catch (_: Exception) {
                                 // Keep the local UI stable; backend validation belongs to the auth backend.
+                            }
                             }
                         }
                     }
