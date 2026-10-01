@@ -20,8 +20,12 @@ fun detectLanguage(text: String): ChatLanguage {
     val lower = text.lowercase()
     val bmMarkers = listOf("saya", "awak", "yang", "dan", "untuk", "macam mana", "boleh", "tak", "apa", "dengan")
     val enMarkers = listOf("the", "you", "what", "how", "can", "and", "for", "with", "please", "why")
-    val bmHits = bmMarkers.count { lower.contains(it) }
-    val enHits = enMarkers.count { lower.contains(it) }
+    val words = Regex("[a-zA-Z]+").findAll(lower).map { it.value }.toSet()
+    fun hit(marker: String): Boolean {
+        return if (marker.contains(" ")) lower.contains(marker) else words.contains(marker)
+    }
+    val bmHits = bmMarkers.count { hit(it) }
+    val enHits = enMarkers.count { hit(it) }
     return when {
         bmHits > 0 && enHits > 0 -> ChatLanguage.MIXED
         bmHits > enHits -> ChatLanguage.BM
