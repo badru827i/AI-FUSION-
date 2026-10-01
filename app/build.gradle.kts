@@ -11,8 +11,8 @@ android {
         applicationId = "com.aifusion.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "4.0.0"
+        versionCode = 2
+        versionName = "4.1.0"
     }
 
     buildTypes {
