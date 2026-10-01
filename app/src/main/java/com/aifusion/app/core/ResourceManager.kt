@@ -9,6 +9,8 @@ data class ResourceStatus(
 )
 
 object ResourceManager {
+    private const val CACHE_LIMIT_MB = 32L
+
     fun status(context: Context): ResourceStatus {
         val memoryInfo = ActivityManager.MemoryInfo()
         context.getSystemService(ActivityManager::class.java)?.getMemoryInfo(memoryInfo)
@@ -16,6 +18,13 @@ object ResourceManager {
             availableRamMb = memoryInfo.availMem / (1024L * 1024L),
             appCacheMb = directorySize(context.cacheDir) / (1024L * 1024L)
         )
+    }
+
+    fun enforceCacheLimit(context: Context) {
+        val cacheMb = directorySize(context.cacheDir) / (1024L * 1024L)
+        if (cacheMb > CACHE_LIMIT_MB) {
+            clearTemporaryCache(context)
+        }
     }
 
     fun clearTemporaryCache(context: Context) {
