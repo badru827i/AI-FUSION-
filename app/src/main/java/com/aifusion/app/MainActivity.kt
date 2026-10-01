@@ -642,13 +642,13 @@ private fun EmptyState(onOpenResearch: (String) -> Unit) {
         Spacer(Modifier.height(22.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickCard(Icons.Outlined.Public, "Research") { onOpenResearch("") }
-            QuickCard(Icons.Outlined.Visibility, "Vision/OCR") { onOpenResearch("Vision/OCR: ") }
+            QuickCard(Icons.Outlined.Public, "Research", { onOpenResearch("") }, Modifier.weight(1f))
+            QuickCard(Icons.Outlined.Visibility, "Vision/OCR", { onOpenResearch("Vision/OCR: ") }, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickCard(Icons.Outlined.AutoAwesome, "Create") { onOpenResearch("Create: ") }
-            QuickCard(Icons.Outlined.AttachFile, "Files") { onOpenResearch("Files: ") }
+            QuickCard(Icons.Outlined.AutoAwesome, "Create", { onOpenResearch("Create: ") }, Modifier.weight(1f))
+            QuickCard(Icons.Outlined.AttachFile, "Files", { onOpenResearch("Files: ") }, Modifier.weight(1f))
         }
     }
 }
@@ -657,11 +657,12 @@ private fun EmptyState(onOpenResearch: (String) -> Unit) {
 private fun QuickCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(78.dp).weight(1f),
+        modifier = modifier.height(78.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
