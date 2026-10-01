@@ -268,6 +268,19 @@ fun ResearchScreen(
                 }
             }
             Text(status, style = MaterialTheme.typography.bodySmall)
+
+            val urlCounts = results
+                .flatMap { it.sources }
+                .groupingBy { it.url }
+                .eachCount()
+            val overlap = urlCounts.count { it.value > 1 }
+            if (results.isNotEmpty()) {
+                Text(
+                    "Cross-agent source overlap: " + overlap + ". Repeated sources are a review signal, not proof of truth.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         LazyColumn(
