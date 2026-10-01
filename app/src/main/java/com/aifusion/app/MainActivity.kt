@@ -110,6 +110,7 @@ private fun AiFusionApp() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showSkills by rememberSaveable { mutableStateOf(false) }
     var clientId by rememberSaveable { mutableStateOf("") }
     var savedClientId by rememberSaveable { mutableStateOf("") }
     var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
@@ -170,9 +171,19 @@ private fun AiFusionApp() {
                         onClick = {}
                     )
                     DrawerItem(
+                        icon = Icons.Outlined.AutoAwesome,
+                        title = "AI Skills",
+                        onClick = {
+                            showSettings = false
+                            showSkills = true
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                    DrawerItem(
                         icon = Icons.Outlined.Settings,
                         title = "Settings",
                         onClick = {
+                            showSkills = false
                             showSettings = true
                             scope.launch { drawerState.close() }
                         }
@@ -199,23 +210,33 @@ private fun AiFusionApp() {
                 TopAppBar(
                     title = {
                         Text(
-                            if (showSettings) "Settings" else "AI-FUSION",
+                            when {
+                                showSettings -> "Settings"
+                                showSkills -> "AI Skills"
+                                else -> "AI-FUSION"
+                            },
                             fontWeight = FontWeight.SemiBold
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = {
-                            if (showSettings) showSettings = false
-                            else scope.launch { drawerState.open() }
+                            when {
+                                showSettings -> showSettings = false
+                                showSkills -> showSkills = false
+                                else -> scope.launch { drawerState.open() }
+                            }
                         }) {
                             Icon(
-                                if (showSettings) Icons.Outlined.Close else Icons.Outlined.Menu,
+                                if (showSettings || showSkills) Icons.Outlined.Close else Icons.Outlined.Menu,
                                 contentDescription = "Menu"
                             )
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showSettings = true }) {
+                        IconButton(onClick = {
+                            showSettings = false
+                            showSkills = true
+                        }) {
                             if (account == null) {
                                 Icon(Icons.Outlined.Person, contentDescription = "Account")
                             } else {
@@ -238,7 +259,15 @@ private fun AiFusionApp() {
                 )
             }
         ) { padding ->
-            if (showSettings) {
+            if (showSkills) {
+                SkillsScreen(
+                    modifier = Modifier.padding(padding),
+                    onUseSkill = { skill ->
+                        showSkills = false
+                        draft = skill.prompt
+                    }
+                )
+            } else if (showSettings) {
                 SettingsScreen(
                     modifier = Modifier.padding(padding),
                     clientId = clientId,
