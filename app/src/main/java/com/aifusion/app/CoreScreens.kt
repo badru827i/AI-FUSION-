@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,6 +41,7 @@ import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
 import com.aifusion.app.core.DeviceOptimizer
 import com.aifusion.app.core.LocalChatStore
+import com.aifusion.app.core.LocalModel
 import com.aifusion.app.core.PerformanceMode
 import com.aifusion.app.core.ResearchCore
 import com.aifusion.app.core.ResearchResult
@@ -293,6 +295,76 @@ fun ResearchScreen(
                                     "[" + (index + 1) + "] " + source.title,
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun ModelManagerScreen(
+    modifier: Modifier,
+    models: List<LocalModel>,
+    modelTier: String,
+    onImport: () -> Unit,
+    onDelete: (String) -> Unit
+) {
+    Column(modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Local Model Manager", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Import .tflite / .onnx files without loading a large model into RAM until an execution adapter is selected.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text("Recommended route: " + modelTier, style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onImport) {
+                Icon(Icons.Outlined.Upload, contentDescription = null)
+                Spacer(Modifier.padding(horizontal = 3.dp))
+                Text("Import model")
+            }
+        }
+
+        if (models.isEmpty()) {
+            Text(
+                "Tiada model diimport. Model Manager hanya mengurus fail/model metadata; runtime inference kekal modular.",
+                modifier = Modifier.padding(18.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(models, key = { it.uri }) { model ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(model.name, style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(3.dp))
+                                Text(
+                                    model.format.uppercase() + " • " + (model.sizeBytes / (1024L * 1024L)) + " MB",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            TextButton(onClick = { onDelete(model.uri) }) {
+                                Text("Remove")
                             }
                         }
                     }
