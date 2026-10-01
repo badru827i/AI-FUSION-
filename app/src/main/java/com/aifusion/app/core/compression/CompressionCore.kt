@@ -11,8 +11,8 @@ import kotlin.math.max
  * Lightweight, dependency-free compression core for AI Fusion.
  *
  * Uses streaming GZIP so large payloads do not need to be duplicated in RAM.
- * This is intended for chat/cache/JSON/text data. It does not recompress
- * already-compressed formats such as JPEG/PNG/ZIP/APK.
+ * Intended for chat/cache/JSON/text data. Already-compressed formats should
+ * be passed as ALREADY_COMPRESSED.
  */
 object CompressionCore {
 
@@ -40,13 +40,12 @@ object CompressionCore {
 
         val output = ByteArrayOutputStream(max(32, input.size / 2))
         GZIPOutputStream(output, 8 * 1024).use { gzip ->
-            ByteArrayInputStream(input).use { source ->
-                copy(source, gzip)
-            }
+            ByteArrayInputStream(input).use { source -> copy(source, gzip) }
         }
+
         val compressed = output.toByteArray()
 
-        // Compression can make small/random data larger. Keep the original in that case.
+        // Do not increase storage usage for data that does not compress well.
         return if (compressed.size < input.size) {
             Result(compressed, input.size.toLong(), compressed.size.toLong())
         } else {
@@ -55,8 +54,8 @@ object CompressionCore {
     }
 
     fun decompress(input: ByteArray): ByteArray {
-        if (input.size < 2 || input[0] != GZIPInputStream.GZIP_MAGIC.toByte() ||
-            input[1] != (GZIPInputStream.GZIP_MAGIC ushr 8).toByte()) {
+        // GZIP magic bytes: 0x1F 0x8B.
+        if (input.size < 2 || input[0] != 0x1F.toByte() || input[1] != 0x8B.toByte()) {
             return input
         }
 
