@@ -66,7 +66,7 @@ object ResearchCore {
                 val rawTitle = match.groupValues.getOrNull(2)
                     ?.replace(Regex("<[^>]+>"), "")
                     .orEmpty()
-                val title = rawTitle.replace("&amp;", "&").replace("&quot;", """).trim()
+                val title = rawTitle.replace("&amp;", "&").replace("&quot;", "\"").trim()
                 if (url.startsWith("http") && title.isNotBlank()) {
                     ResearchSource(title, url)
                 } else {
