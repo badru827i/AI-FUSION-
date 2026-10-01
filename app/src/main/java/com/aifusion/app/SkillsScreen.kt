@@ -37,7 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-private data class FusionSkill(
+data class FusionSkill(
     val name: String,
     val description: String,
     val prompt: String,
