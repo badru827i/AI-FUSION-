@@ -167,6 +167,11 @@ private fun AiFusionApp() {
     var savedClientId by rememberSaveable { mutableStateOf("") }
     var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
 
+    LaunchedEffect(Unit) {
+        ResourceManager.enforceCacheLimit(context)
+        resourceStatus = ResourceManager.status(context)
+    }
+
     val tts = remember(context) {
         TextToSpeech(context) { }
     }
