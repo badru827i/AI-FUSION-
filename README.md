@@ -31,8 +31,8 @@ Next-generation full AI Assistant for Android.
 
 - GZIP compression for local chat history
 - App cache size and available RAM status
-- Manual temporary-cache cleanup
-- No permanent chat storage on the Railway backend
+- Automatic temporary-cache cleanup above a small threshold plus manual cleanup
+- Chat history is kept in the app's local store; it is not sent to a backend by the local chat layer
 
 ## Local Model Manager
 
