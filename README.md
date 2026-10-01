@@ -52,3 +52,5 @@ The existing Google sign-in shell and original UI foundation are retained. Backe
 Android 7.0+ (minSdk 24).
 
 GitHub Actions builds the debug APK on pushes and pull requests to main.
+
+CI verification branch: build the Android debug APK before release.
