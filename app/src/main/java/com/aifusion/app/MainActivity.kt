@@ -89,6 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
+import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.GetCredentialRequest
 import com.aifusion.app.core.ChatMessage
 import com.aifusion.app.core.ChatSession
@@ -170,8 +171,9 @@ private fun AiFusionApp() {
     var showSettingsPassword by rememberSaveable { mutableStateOf(false) }
     var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
     var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
-    var clientId by rememberSaveable { mutableStateOf("") }
-    var savedClientId by rememberSaveable { mutableStateOf("") }
+    val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
+    var clientId by rememberSaveable { mutableStateOf(googlePrefs.getString("client_id", "").orEmpty()) }
+    var savedClientId by rememberSaveable { mutableStateOf(googlePrefs.getString("client_id", "").orEmpty()) }
     var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
 
     LaunchedEffect(Unit) {
@@ -605,7 +607,10 @@ private fun AiFusionApp() {
                     showClientId = showSettingsPassword,
                     onShowClientId = { showSettingsPassword = !showSettingsPassword },
                     onClientIdChange = { clientId = it },
-                    onSaveClientId = { savedClientId = clientId.trim() },
+                    onSaveClientId = {
+                        savedClientId = clientId.trim()
+                        googlePrefs.edit().putString("client_id", savedClientId).apply()
+                    },
                     resourceStatus = resourceStatus,
                     onClearCache = {
                         ResourceManager.clearTemporaryCache(context)
@@ -672,6 +677,9 @@ private fun AiFusionApp() {
                     onSignOut = {
                         scope.launch {
                             runCatching { firebaseAccountManager.signOut() }
+                            runCatching {
+                                CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
+                            }
                             account = null
                             status = "Signed out • Local chats remain on this device"
                         }
