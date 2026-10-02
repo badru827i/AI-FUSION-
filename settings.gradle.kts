@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "AI-FUSION"
 include(":app")
+include(":engine")
