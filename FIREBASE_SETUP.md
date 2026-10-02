@@ -1,26 +1,19 @@
-# Firebase account setup for AI-FUSION
+# AI-FUSION Google Account Setup (zero-server)
 
-AI-FUSION now supports a real Google-to-Firebase account flow:
+AI-FUSION uses Google Credential Manager for optional Google account sign-in. The Google credential is used only to identify the local account; chat history stays on the phone.
 
-Google Credential Manager -> Google ID token -> Firebase Authentication -> Firebase UID -> Cloud Firestore.
+## One-time Google setup
 
-## One-time setup
+1. Create an Android OAuth client for package name `com.aifusion.app`.
+2. Add the SHA-1/SHA-256 fingerprints for the signing certificates used by the APK.
+3. Create a Web/server OAuth client ID in the same Google Cloud project.
+4. In AI-FUSION Settings, paste that Web OAuth Client ID into **Google OAuth Client ID** and tap **Save**.
+5. Tap **Continue with Google** and choose your Google account.
 
-1. Create/select a Firebase project.
-2. Add an Android app with package name: `com.aifusion.app`.
-3. Add the SHA-1 fingerprint for the signing certificate used by the APK.
-4. Enable Google in Firebase Authentication.
-5. Create/enable Cloud Firestore.
-6. Download `google-services.json` and place it at:
-   `app/google-services.json`
-7. Do **not** commit `google-services.json` if your repository policy requires keeping Firebase configuration private; add it through your local/CI build environment instead.
-8. In AI-FUSION Settings, enter the **Web/server OAuth client ID** in the existing Google OAuth Client ID field. Firebase's Android Google sign-in documentation specifies that `setServerClientId()` uses the server/Web client ID, not the Android client ID.
+The app uses the Web/server client ID with Credential Manager's Google ID option. No Firebase project, Firestore database, Railway service, or AI server is required for the login flow.
 
-## Firestore structure
+## Local data
 
-- `users/{uid}` — profile metadata
-- `users/{uid}/chats/{chatId}` — cloud chat history
+The app stores only the account display name, email, and Google unique ID needed for the local account state. Google ID tokens are not stored by AI-FUSION.
 
-The included `firestore.rules` restricts each user to their own UID path.
-
-Until `google-services.json` is connected and Firebase is configured, the app keeps its existing local-first chat behavior.
+Chat history remains in the existing local chat store.
