@@ -1,0 +1,8 @@
+# Local / generated files
+.gradle/
+build/
+**/build/
+local.properties
+
+# Firebase local configuration
+app/google-services.json
