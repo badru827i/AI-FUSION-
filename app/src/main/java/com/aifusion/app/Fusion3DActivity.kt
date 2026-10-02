@@ -25,6 +25,10 @@ import java.net.URI
 
 class Fusion3DActivity : ComponentActivity(), ContentUtils.ContentResolver {
 
+    companion object {
+        const val EXTRA_MODEL_URI = "ai_fusion_model_uri"
+    }
+
     private lateinit var surface: GLSurfaceView
     private lateinit var statusView: TextView
     private lateinit var modelNameView: TextView
@@ -88,7 +92,23 @@ class Fusion3DActivity : ComponentActivity(), ContentUtils.ContentResolver {
             finish()
         }
 
-        statusView.text = "3D siap • 1 jari rotate 360° • pinch zoom • 2 jari pan"
+        val generatedUri = intent.getStringExtra(EXTRA_MODEL_URI)
+        if (!generatedUri.isNullOrBlank()) {
+            runCatching {
+                val uri = Uri.parse(generatedUri)
+                val name = displayName(uri)
+                val extension = name.substringAfterLast('.', "").lowercase()
+                if (extension in setOf("obj", "fbx")) {
+                    loadModel(uri, name, extension)
+                } else {
+                    statusView.text = "3D error: hanya OBJ dan FBX disokong."
+                }
+            }.onFailure {
+                statusView.text = "3D error: ${it.message ?: "model tidak dapat dibuka"}"
+            }
+        } else {
+            statusView.text = "3D siap • 1 jari rotate 360° • pinch zoom • 2 jari pan"
+        }
     }
 
     private fun displayName(uri: Uri): String {
