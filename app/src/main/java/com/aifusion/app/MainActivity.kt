@@ -485,6 +485,7 @@ private fun AiFusionApp() {
                                 AppScreen.DEVICE -> "Smart Device"
                                 AppScreen.MODEL_MANAGER -> "Model Manager"
                                 AppScreen.SETTINGS -> "Settings"
+                                else -> "AI-FUSION"
                             },
                             fontWeight = FontWeight.SemiBold
                         )
