@@ -97,6 +97,7 @@ import com.aifusion.app.core.DeviceOptimizer
 import com.aifusion.app.core.LocalChatStore
 import com.aifusion.app.core.AiChatClient
 import com.aifusion.app.core.ApiKeyStore
+import com.aifusion.app.core.FirebaseAccountManager
 import com.aifusion.app.core.LocalModel
 import com.aifusion.app.core.ModelManager
 import com.aifusion.app.core.ResourceManager
@@ -141,6 +142,7 @@ private fun AiFusionApp() {
     val store = remember(context) { LocalChatStore(context) }
     val modelStore = remember(context) { ModelManager(context) }
     val apiKeyStore = remember(context) { ApiKeyStore(context) }
+    val firebaseAccountManager = remember { FirebaseAccountManager() }
 
     var models by remember { mutableStateOf(modelStore.list()) }
     var resourceStatus by remember { mutableStateOf(ResourceManager.status(context)) }
@@ -173,6 +175,12 @@ private fun AiFusionApp() {
     var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
 
     LaunchedEffect(Unit) {
+        runCatching { firebaseAccountManager.currentAccount() }.getOrNull()?.let {
+            account = GoogleAccountUi(it.displayName, it.email)
+        }
+    }
+
+    LaunchedEffect(Unit) {
         ResourceManager.enforceCacheLimit(context)
         resourceStatus = ResourceManager.status(context)
     }
@@ -201,7 +209,13 @@ private fun AiFusionApp() {
         if (messages.isEmpty()) return
         val firstUser = messages.firstOrNull { it.fromUser }?.text.orEmpty()
         val title = firstUser.ifBlank { "AI-FUSION Chat" }.take(48)
-        store.save(ChatSession(sessionId, title, messages))
+        val session = ChatSession(sessionId, title, messages)
+        store.save(session)
+        if (account != null) {
+            scope.launch {
+                runCatching { firebaseAccountManager.syncSession(session) }
+            }
+        }
     }
 
     fun startNewChat() {
@@ -601,44 +615,65 @@ private fun AiFusionApp() {
                         val id = savedClientId.trim()
                         if (id.isNotBlank() && id.contains(".apps.googleusercontent.com")) {
                             scope.launch {
-                            try {
-                                val googleIdOption = GetGoogleIdOption.Builder()
-                                    .setServerClientId(id)
-                                    .setFilterByAuthorizedAccounts(false)
-                                    .setAutoSelectEnabled(true)
-                                    .build()
+                                try {
+                                    val googleIdOption = GetGoogleIdOption.Builder()
+                                        .setServerClientId(id)
+                                        .setFilterByAuthorizedAccounts(false)
+                                        .setAutoSelectEnabled(true)
+                                        .build()
 
-                                val request = GetCredentialRequest.Builder()
-                                    .addCredentialOption(googleIdOption)
-                                    .build()
+                                    val request = GetCredentialRequest.Builder()
+                                        .addCredentialOption(googleIdOption)
+                                        .build()
 
-                                val result = CredentialManager.create(context).getCredential(
-                                    request = request,
-                                    context = context
-                                )
-                                val credential = result.credential
+                                    val result = CredentialManager.create(context).getCredential(
+                                        request = request,
+                                        context = context
+                                    )
+                                    val credential = result.credential
 
-                                if (
-                                    credential is CustomCredential &&
-                                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                ) {
-                                    val googleCredential = try {
-                                        GoogleIdTokenCredential.createFrom(credential.data)
-                                    } catch (_: GoogleIdTokenParsingException) {
-                                        null
+                                    if (
+                                        credential is CustomCredential &&
+                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                                    ) {
+                                        val googleCredential = try {
+                                            GoogleIdTokenCredential.createFrom(credential.data)
+                                        } catch (_: GoogleIdTokenParsingException) {
+                                            null
+                                        }
+
+                                        googleCredential?.let {
+                                            val firebaseAccount = firebaseAccountManager.signInWithGoogleIdToken(it.idToken)
+                                            account = GoogleAccountUi(
+                                                displayName = firebaseAccount.displayName,
+                                                email = firebaseAccount.email
+                                            )
+
+                                            val cloudSessions = firebaseAccountManager.loadSessions()
+                                            cloudSessions.forEach { cloudSession ->
+                                                store.save(cloudSession)
+                                            }
+
+                                            cloudSessions.firstOrNull()?.let { cloudSession ->
+                                                sessionId = cloudSession.id
+                                                messages = cloudSession.messages
+                                                nextMessageId = (messages.maxOfOrNull { message -> message.id } ?: 0L) + 1L
+                                            }
+
+                                            status = "Signed in • Cloud account active"
+                                        }
                                     }
-
-                                    googleCredential?.let {
-                                        account = GoogleAccountUi(
-                                            displayName = it.displayName ?: "Google user",
-                                            email = it.id
-                                        )
-                                    }
+                                } catch (error: Exception) {
+                                    status = "Google/Firebase sign-in failed"
                                 }
-                            } catch (_: Exception) {
-                                // Keep the local UI stable; backend validation belongs to the auth backend.
                             }
-                            }
+                        }
+                    },
+                    onSignOut = {
+                        scope.launch {
+                            runCatching { firebaseAccountManager.signOut() }
+                            account = null
+                            status = "Signed out • Local chats remain on this device"
                         }
                     }
                 )
@@ -914,7 +949,8 @@ private fun SettingsScreen(
     onShowClientId: () -> Unit,
     onClientIdChange: (String) -> Unit,
     onSaveClientId: () -> Unit,
-    onSignIn: () -> Unit
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit
 ) {
     Column(
         modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp),
@@ -997,12 +1033,17 @@ private fun SettingsScreen(
                     Text(if (account == null) "Continue with Google" else "Reconnect Google")
                 }
                 AnimatedVisibility(account != null) {
-                    Text(
-                        "Connected on this device. Token validation still belongs on the application server.",
-                        modifier = Modifier.padding(top = 10.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column {
+                        Text(
+                            "Firebase account connected • cloud sync enabled",
+                            modifier = Modifier.padding(top = 10.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(onClick = onSignOut) {
+                            Text("Sign out")
+                        }
+                    }
                 }
             }
         }
