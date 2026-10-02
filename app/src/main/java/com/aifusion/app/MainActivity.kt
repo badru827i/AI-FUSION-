@@ -51,6 +51,7 @@ import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speaker
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -98,7 +99,6 @@ import com.aifusion.app.core.DeviceOptimizer
 import com.aifusion.app.core.LocalChatStore
 import com.aifusion.app.core.AiChatClient
 import com.aifusion.app.core.ApiKeyStore
-import com.aifusion.app.core.FirebaseAccountManager
 import com.aifusion.app.core.LocalModel
 import com.aifusion.app.core.ModelManager
 import com.aifusion.app.core.ResourceManager
@@ -143,7 +143,6 @@ private fun AiFusionApp() {
     val store = remember(context) { LocalChatStore(context) }
     val modelStore = remember(context) { ModelManager(context) }
     val apiKeyStore = remember(context) { ApiKeyStore(context) }
-    val firebaseAccountManager = remember { FirebaseAccountManager() }
 
     var models by remember { mutableStateOf(modelStore.list()) }
     var resourceStatus by remember { mutableStateOf(ResourceManager.status(context)) }
@@ -174,14 +173,15 @@ private fun AiFusionApp() {
     val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
     var clientId by rememberSaveable { mutableStateOf(googlePrefs.getString("client_id", "").orEmpty()) }
     var savedClientId by rememberSaveable { mutableStateOf(googlePrefs.getString("client_id", "").orEmpty()) }
-    var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
-
-    LaunchedEffect(Unit) {
-        runCatching { firebaseAccountManager.currentAccount() }
-            .onSuccess { it?.let { user -> account = GoogleAccountUi(user.displayName, user.email) } }
-            .onFailure { error ->
-                status = "Firebase belum aktif: ${error.message.orEmpty()}"
+    var account by remember {
+        mutableStateOf(
+            googlePrefs.getString("email", null)?.let { email ->
+                GoogleAccountUi(
+                    displayName = googlePrefs.getString("display_name", "Google user").orEmpty().ifBlank { "Google user" },
+                    email = email
+                )
             }
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -215,11 +215,6 @@ private fun AiFusionApp() {
         val title = firstUser.ifBlank { "AI-FUSION Chat" }.take(48)
         val session = ChatSession(sessionId, title, messages)
         store.save(session)
-        if (account != null) {
-            scope.launch {
-                runCatching { firebaseAccountManager.syncSession(session) }
-            }
-        }
     }
 
     fun startNewChat() {
@@ -437,6 +432,10 @@ private fun AiFusionApp() {
                         screen = AppScreen.RESEARCH
                         scope.launch { drawerState.close() }
                     }
+                    DrawerItem(Icons.Outlined.ViewInAr, "3D Studio") {
+                        context.startActivity(Intent(context, Fusion3DActivity::class.java))
+                        scope.launch { drawerState.close() }
+                    }
                     DrawerItem(Icons.Outlined.AutoAwesome, "AI Skills") {
                         screen = AppScreen.SKILLS
                         scope.launch { drawerState.close() }
@@ -650,24 +649,22 @@ private fun AiFusionApp() {
                                         }
 
                                         googleCredential?.let {
-                                            val firebaseAccount = firebaseAccountManager.signInWithGoogleIdToken(it.idToken)
+                                            val email = it.email.orEmpty().trim()
+                                            if (email.isBlank()) error("Google tidak memulangkan email akaun")
+                                            val displayName = it.displayName.orEmpty().trim().ifBlank {
+                                                email.substringBefore("@").ifBlank { "Google user" }
+                                            }
+                                            val uniqueId = it.uniqueId.orEmpty().trim()
+                                            googlePrefs.edit()
+                                                .putString("display_name", displayName)
+                                                .putString("email", email)
+                                                .putString("unique_id", uniqueId)
+                                                .apply()
                                             account = GoogleAccountUi(
-                                                displayName = firebaseAccount.displayName,
-                                                email = firebaseAccount.email
+                                                displayName = displayName,
+                                                email = email
                                             )
-
-                                            val cloudSessions = firebaseAccountManager.loadSessions()
-                                            cloudSessions.forEach { cloudSession ->
-                                                store.save(cloudSession)
-                                            }
-
-                                            cloudSessions.firstOrNull()?.let { cloudSession ->
-                                                sessionId = cloudSession.id
-                                                messages = cloudSession.messages
-                                                nextMessageId = (messages.maxOfOrNull { message -> message.id } ?: 0L) + 1L
-                                            }
-
-                                            status = "Signed in • Cloud account active"
+                                            status = "Signed in • Google account active (local)"
                                         }
                                     }
                                 } catch (error: Exception) {
@@ -686,10 +683,10 @@ private fun AiFusionApp() {
                     },
                     onSignOut = {
                         scope.launch {
-                            runCatching { firebaseAccountManager.signOut() }
                             runCatching {
                                 CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
                             }
+                            googlePrefs.edit().clear().apply()
                             account = null
                             status = "Signed out • Local chats remain on this device"
                         }
@@ -1053,7 +1050,7 @@ private fun SettingsScreen(
                 AnimatedVisibility(account != null) {
                     Column {
                         Text(
-                            "Firebase account connected • cloud sync enabled",
+                            "Google account connected • identity only, chats stay local",
                             modifier = Modifier.padding(top = 10.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
