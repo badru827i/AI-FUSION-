@@ -2,6 +2,8 @@ plugins {
     id("com.android.library")
 }
 
+val engineRoot = rootProject.file("engine")
+
 android {
     namespace = "org.the3deer.android.engine"
     compileSdk = 37
@@ -9,7 +11,7 @@ android {
     defaultConfig {
         minSdk = 24
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("engine/proguard-rules.pro")
+        consumerProguardFiles(engineRoot.resolve("proguard-rules.pro"))
     }
 
     buildTypes {
@@ -18,7 +20,7 @@ android {
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "engine/proguard-rules.pro"
+                engineRoot.resolve("proguard-rules.pro")
             )
         }
     }
@@ -32,17 +34,17 @@ android {
     sourceSets {
         getByName("main") {
             java.srcDirs(
-                "engine/src/main/java",
-                "engine/src/obj/java",
-                "engine/src/fbx/java"
+                engineRoot.resolve("src/main/java"),
+                engineRoot.resolve("src/obj/java"),
+                engineRoot.resolve("src/fbx/java")
             )
-            jniLibs.srcDir("engine/src/fbx/cpp")
+            jniLibs.srcDir(engineRoot.resolve("src/fbx/cpp"))
         }
     }
 
     externalNativeBuild {
         cmake {
-            path = file("engine/src/fbx/cpp/CMakeLists.txt")
+            path = engineRoot.resolve("src/fbx/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
