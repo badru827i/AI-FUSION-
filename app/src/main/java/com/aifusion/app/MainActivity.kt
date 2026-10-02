@@ -247,6 +247,42 @@ private fun AiFusionApp() {
             return
         }
 
+        if (FusionToolRouter.detectTool(clean) == FusionToolRouter.Tool.THREE_D) {
+            generating = true
+            status = "3D Tool • building local mesh…"
+            val userId = nextMessageId++
+            val aiId = nextMessageId++
+            messages = messages + ChatMessage(userId, true, clean)
+            messages = messages + ChatMessage(
+                aiId,
+                false,
+                "AI-FUSION 3D Tool: saya bina model OBJ asas secara lokal dan buka 3D Studio untuk rotate 360°."
+            )
+            draft = ""
+            saveCurrent()
+
+            runCatching {
+                val file = FusionToolRouter.build3D(context, clean)
+                context.startActivity(
+                    Intent(context, Fusion3DActivity::class.java).putExtra(
+                        Fusion3DActivity.EXTRA_MODEL_URI,
+                        android.net.Uri.fromFile(file).toString()
+                    )
+                )
+                status = "3D Tool • model siap • OBJ • local"
+            }.onFailure {
+                messages = messages.dropLast(1) + ChatMessage(
+                    aiId,
+                    false,
+                    "3D Tool error: ${it.message ?: "model tidak dapat dibina"}"
+                )
+                status = "3D Tool error"
+            }
+            generating = false
+            saveCurrent()
+            return
+        }
+
         generating = true
         status = "● ● ●"
         val userId = nextMessageId++
@@ -528,6 +564,9 @@ private fun AiFusionApp() {
                     onOpenResearch = {
                         researchQuery = it
                         screen = AppScreen.RESEARCH
+                    },
+                    onOpen3D = {
+                        draft = "Bina model 3D: "
                     }
                 )
 
@@ -730,7 +769,8 @@ private fun ChatHome(
     onSend: () -> Unit,
     onVoice: () -> Unit,
     onSpeak: (String) -> Unit,
-    onOpenResearch: (String) -> Unit
+    onOpenResearch: (String) -> Unit,
+    onOpen3D: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -742,7 +782,7 @@ private fun ChatHome(
 
     Column(modifier.fillMaxSize()) {
         if (messages.isEmpty()) {
-            EmptyState(onOpenResearch)
+            EmptyState(onOpenResearch, onOpen3D)
         } else {
             LazyColumn(
                 state = listState,
@@ -787,7 +827,10 @@ private fun ChatHome(
 }
 
 @Composable
-private fun EmptyState(onOpenResearch: (String) -> Unit) {
+private fun EmptyState(
+    onOpenResearch: (String) -> Unit,
+    onOpen3D: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
         verticalArrangement = Arrangement.Center,
@@ -823,7 +866,7 @@ private fun EmptyState(onOpenResearch: (String) -> Unit) {
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickCard(Icons.Outlined.Public, "Research", { onOpenResearch("") }, Modifier.weight(1f))
-            QuickCard(Icons.Outlined.Visibility, "Vision/OCR", { onOpenResearch("Vision/OCR: ") }, Modifier.weight(1f))
+            QuickCard(Icons.Outlined.ViewInAr, "3D Design", onOpen3D, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
