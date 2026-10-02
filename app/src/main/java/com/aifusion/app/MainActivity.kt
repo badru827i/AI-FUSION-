@@ -13,6 +13,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,6 +98,8 @@ import androidx.credentials.GetCredentialRequest
 import com.aifusion.app.core.ChatMessage
 import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
+import com.aifusion.app.core.HardwareMonitor
+import com.aifusion.app.core.HardwareSample
 import com.aifusion.app.core.DeviceOptimizer
 import com.aifusion.app.core.LocalChatStore
 import com.aifusion.app.core.AiChatClient
@@ -162,6 +167,20 @@ private fun AiFusionApp() {
     var generating by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var researchQuery by rememberSaveable { mutableStateOf("") }
+    var showHardwareMonitor by rememberSaveable { mutableStateOf(false) }
+    var hardwareSample by remember { mutableStateOf(HardwareMonitor.read(context)) }
+    var hardwareHistory by remember { mutableStateOf(listOf(hardwareSample)) }
+
+    LaunchedEffect(showHardwareMonitor) {
+        if (showHardwareMonitor) {
+            while (true) {
+                val sample = HardwareMonitor.read(context)
+                hardwareSample = sample
+                hardwareHistory = (hardwareHistory + sample).takeLast(30)
+                delay(1000L)
+            }
+        }
+    }
 
     var capabilities by remember {
         mutableStateOf(DeviceOptimizer.detect(context))
@@ -541,6 +560,9 @@ private fun AiFusionApp() {
                         }
                     },
                     actions = {
+                        IconButton(onClick = { showHardwareMonitor = true }) {
+                            Icon(Icons.Outlined.Memory, contentDescription = "Live hardware monitor")
+                        }
                         if (screen == AppScreen.CHAT) {
                             IconButton(onClick = { startNewChat() }) {
                                 Icon(Icons.Outlined.Add, contentDescription = "New chat")
@@ -732,6 +754,124 @@ private fun AiFusionApp() {
                         }
                     }
                 )
+            }
+
+            AnimatedVisibility(
+                visible = showHardwareMonitor,
+                enter = slideInHorizontally(initialOffsetX = { it }),
+                exit = slideOutHorizontally(targetOffsetX = { it })
+            ) {
+                HardwareMonitorPanel(
+                    sample = hardwareSample,
+                    history = hardwareHistory,
+                    onClose = { showHardwareMonitor = false }
+                )
+            }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HardwareMonitorPanel(
+    sample: HardwareSample,
+    history: List<HardwareSample>,
+    onClose: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Live Hardware", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Local device telemetry • 1s", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Close monitor")
+                }
+            }
+
+            HardwareMetric("CPU", HardwareMonitor.percentText(sample.cpuPercent), history.map { it.cpuPercent })
+            HardwareMetric("RAM", "${sample.ramUsedMb} / ${sample.ramTotalMb} MB • ${HardwareMonitor.percentText(sample.ramPercent)}", history.map { it.ramPercent })
+            HardwareMetric("GPU", HardwareMonitor.percentText(sample.gpuPercent), history.mapNotNull { it.gpuPercent })
+            HardwareMetric("NPU", HardwareMonitor.percentText(sample.npuPercent), history.mapNotNull { it.npuPercent })
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("AI compute route", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        when {
+                            sample.npuPercent != null -> "LOCAL AI → NPU"
+                            sample.gpuPercent != null -> "LOCAL AI → GPU / CPU"
+                            else -> "LOCAL AI → CPU"
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "N/A bermaksud Android/chipset tidak mendedahkan penggunaan masa nyata untuk sensor tersebut.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HardwareMetric(
+    title: String,
+    value: String,
+    points: List<Float>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                Text(value, style = MaterialTheme.typography.labelLarge)
+            }
+            Spacer(Modifier.height(8.dp))
+            if (points.isEmpty()) {
+                Text("Telemetry unavailable", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Canvas(Modifier.fillMaxWidth().height(52.dp)) {
+                    val max = points.size.coerceAtLeast(2)
+                    val step = size.width / (max - 1).toFloat()
+                    for (i in 0 until points.size - 1) {
+                        val x1 = i * step
+                        val x2 = (i + 1) * step
+                        val y1 = size.height - (points[i].coerceIn(0f, 100f) / 100f * size.height)
+                        val y2 = size.height - (points[i + 1].coerceIn(0f, 100f) / 100f * size.height)
+                        drawLine(
+                            color = MaterialTheme.colorScheme.primary,
+                            start = androidx.compose.ui.geometry.Offset(x1, y1),
+                            end = androidx.compose.ui.geometry.Offset(x2, y2),
+                            strokeWidth = 4f
+                        )
+                    }
+                }
             }
         }
     }
