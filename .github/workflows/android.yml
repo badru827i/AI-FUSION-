@@ -31,6 +31,12 @@ jobs:
         with:
           gradle-version: '9.6.1'
 
+      - name: Print debug signing SHA-1
+        run: |
+          gradle --no-daemon :app:signingReport
+          echo "Google OAuth Android client must use package: com.aifusion.app"
+          echo "Use the SHA-1 shown under Variant: debug for the APK built by this workflow."
+
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
 
