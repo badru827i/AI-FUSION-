@@ -36,7 +36,8 @@ android {
             java.srcDirs(
                 engineRoot.resolve("src/main/java"),
                 engineRoot.resolve("src/obj/java"),
-                engineRoot.resolve("src/fbx/java")
+                engineRoot.resolve("src/fbx/java"),
+                engineRoot.resolve("src/collada/java")
             )
             jniLibs.srcDir(engineRoot.resolve("src/fbx/cpp"))
         }
