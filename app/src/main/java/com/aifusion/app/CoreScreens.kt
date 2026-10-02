@@ -366,7 +366,7 @@ fun ModelManagerScreen(
                             modifier = Modifier.fillMaxWidth().padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(Modifier.weight(1f)) {
+                            Column(Modifier.fillMaxWidth(0.72f)) {
                                 Text(model.name, style = MaterialTheme.typography.titleMedium)
                                 Spacer(Modifier.height(3.dp))
                                 Text(
