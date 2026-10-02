@@ -37,7 +37,7 @@ android {
                 engineRoot.resolve("src/main/java"),
                 engineRoot.resolve("src/obj/java"),
                 engineRoot.resolve("src/fbx/java"),
-                engineRoot.resolve("src/collada/java")
+                engineRoot.resolve("src/dae/java")
             )
             jniLibs.srcDir(engineRoot.resolve("src/fbx/cpp"))
         }
