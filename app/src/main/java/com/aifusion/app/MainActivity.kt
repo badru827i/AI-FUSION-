@@ -177,9 +177,11 @@ private fun AiFusionApp() {
     var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
 
     LaunchedEffect(Unit) {
-        runCatching { firebaseAccountManager.currentAccount() }.getOrNull()?.let {
-            account = GoogleAccountUi(it.displayName, it.email)
-        }
+        runCatching { firebaseAccountManager.currentAccount() }
+            .onSuccess { it?.let { user -> account = GoogleAccountUi(user.displayName, user.email) } }
+            .onFailure { error ->
+                status = "Firebase belum aktif: ${error.message.orEmpty()}"
+            }
     }
 
     LaunchedEffect(Unit) {
@@ -669,7 +671,15 @@ private fun AiFusionApp() {
                                         }
                                     }
                                 } catch (error: Exception) {
-                                    status = "Google/Firebase sign-in failed"
+                                    val message = error.message
+                                        ?.replace("\\n", " ")
+                                        ?.take(180)
+                                        .orEmpty()
+                                    status = if (message.isBlank()) {
+                                        "Google/Firebase sign-in failed"
+                                    } else {
+                                        "Sign-in error: $message"
+                                    }
                                 }
                             }
                         }
