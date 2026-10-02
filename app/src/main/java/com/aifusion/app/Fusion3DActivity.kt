@@ -112,7 +112,7 @@ class Fusion3DActivity : ComponentActivity(), ContentUtils.ContentResolver {
         modelNameView.text = name
         statusView.text = "Loading $extension…"
 
-        viewModel.initEngine(model) {
+        viewModel.initEngine(model.id.toString(), model.name, model.type) {
             try {
                 val engine = viewModel.getEngine(uriString)
                     ?: error("3D engine gagal diinisialisasi")
