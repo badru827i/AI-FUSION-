@@ -1,5 +1,7 @@
 package com.aifusion.app.core
 
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
@@ -13,13 +15,31 @@ data class CloudAccount(
 )
 
 class FirebaseAccountManager {
+
+    private fun requireFirebase() {
+        if (FirebaseApp.getApps().isEmpty()) {
+            throw IllegalStateException(
+                "Firebase belum dikonfigurasi. Letakkan google-services.json dalam app/ dan rebuild app."
+            )
+        }
+    }
+
     private val auth: FirebaseAuth
-        get() = FirebaseAuth.getInstance()
+        get() {
+            requireFirebase()
+            return FirebaseAuth.getInstance()
+        }
 
     private val db: FirebaseFirestore
-        get() = FirebaseFirestore.getInstance()
+        get() {
+            requireFirebase()
+            return FirebaseFirestore.getInstance()
+        }
+
+    fun isConfigured(): Boolean = FirebaseApp.getApps().isNotEmpty()
 
     fun currentAccount(): CloudAccount? {
+        if (!isConfigured()) return null
         val user = auth.currentUser ?: return null
         return CloudAccount(
             uid = user.uid,
@@ -30,9 +50,11 @@ class FirebaseAccountManager {
     }
 
     suspend fun signInWithGoogleIdToken(idToken: String): CloudAccount {
+        requireFirebase()
+        if (idToken.isBlank()) error("Google ID token kosong")
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         val result = auth.signInWithCredential(credential).await()
-        val user = result.user ?: error("Firebase did not return a user")
+        val user = result.user ?: error("Firebase tidak memulangkan user")
         return CloudAccount(
             uid = user.uid,
             displayName = user.displayName ?: "Google user",
@@ -51,39 +73,30 @@ class FirebaseAccountManager {
             )
         }
 
-        db.collection("users")
-            .document(user.uid)
-            .collection("chats")
-            .document(session.id.toString())
+        db.collection("users").document(user.uid)
+            .collection("chats").document(session.id.toString())
             .set(
                 mapOf(
                     "title" to session.title,
                     "updatedAt" to System.currentTimeMillis(),
                     "messages" to messages
                 )
-            )
-            .await()
+            ).await()
 
-        db.collection("users")
-            .document(user.uid)
-            .set(
-                mapOf(
-                    "displayName" to (user.displayName ?: ""),
-                    "email" to (user.email ?: ""),
-                    "photoUrl" to (user.photoUrl?.toString() ?: ""),
-                    "lastSeenAt" to System.currentTimeMillis()
-                )
+        db.collection("users").document(user.uid).set(
+            mapOf(
+                "displayName" to (user.displayName ?: ""),
+                "email" to (user.email ?: ""),
+                "photoUrl" to (user.photoUrl?.toString() ?: ""),
+                "lastSeenAt" to System.currentTimeMillis()
             )
-            .await()
+        ).await()
     }
 
     suspend fun loadSessions(): List<ChatSession> {
         val user = auth.currentUser ?: return emptyList()
-        val snapshot = db.collection("users")
-            .document(user.uid)
-            .collection("chats")
-            .get()
-            .await()
+        val snapshot = db.collection("users").document(user.uid)
+            .collection("chats").get().await()
 
         return snapshot.documents.mapNotNull { doc ->
             val id = doc.id.toLongOrNull() ?: return@mapNotNull null
@@ -101,15 +114,11 @@ class FirebaseAccountManager {
 
     suspend fun deleteSession(id: Long) {
         val user = auth.currentUser ?: return
-        db.collection("users")
-            .document(user.uid)
-            .collection("chats")
-            .document(id.toString())
-            .delete()
-            .await()
+        db.collection("users").document(user.uid)
+            .collection("chats").document(id.toString()).delete().await()
     }
 
     fun signOut() {
-        auth.signOut()
+        if (isConfigured()) FirebaseAuth.getInstance().signOut()
     }
 }
