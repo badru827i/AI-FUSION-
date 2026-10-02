@@ -856,6 +856,7 @@ private fun HardwareMetric(
             if (points.isEmpty()) {
                 Text("Telemetry unavailable", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
+                val lineColor = MaterialTheme.colorScheme.primary
                 Canvas(Modifier.fillMaxWidth().height(52.dp)) {
                     val max = points.size.coerceAtLeast(2)
                     val step = size.width / (max - 1).toFloat()
@@ -865,7 +866,7 @@ private fun HardwareMetric(
                         val y1 = size.height - (points[i].coerceIn(0f, 100f) / 100f * size.height)
                         val y2 = size.height - (points[i + 1].coerceIn(0f, 100f) / 100f * size.height)
                         drawLine(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = lineColor,
                             start = androidx.compose.ui.geometry.Offset(x1, y1),
                             end = androidx.compose.ui.geometry.Offset(x2, y2),
                             strokeWidth = 4f
