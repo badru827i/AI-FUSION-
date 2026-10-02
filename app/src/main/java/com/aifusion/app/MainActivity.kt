@@ -95,6 +95,8 @@ import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
 import com.aifusion.app.core.DeviceOptimizer
 import com.aifusion.app.core.LocalChatStore
+import com.aifusion.app.core.AiChatClient
+import com.aifusion.app.core.ApiKeyStore
 import com.aifusion.app.core.LocalModel
 import com.aifusion.app.core.ModelManager
 import com.aifusion.app.core.ResourceManager
@@ -138,6 +140,7 @@ private fun AiFusionApp() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val store = remember(context) { LocalChatStore(context) }
     val modelStore = remember(context) { ModelManager(context) }
+    val apiKeyStore = remember(context) { ApiKeyStore(context) }
 
     var models by remember { mutableStateOf(modelStore.list()) }
     var resourceStatus by remember { mutableStateOf(ResourceManager.status(context)) }
@@ -163,6 +166,8 @@ private fun AiFusionApp() {
     }
 
     var showSettingsPassword by rememberSaveable { mutableStateOf(false) }
+    var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
+    var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
     var clientId by rememberSaveable { mutableStateOf("") }
     var savedClientId by rememberSaveable { mutableStateOf("") }
     var account by remember { mutableStateOf<GoogleAccountUi?>(null) }
@@ -238,11 +243,37 @@ private fun AiFusionApp() {
         messages = messages + ChatMessage(aiId, false, "")
         draft = ""
 
-        val response = localResponse(
-            query = clean,
-            capabilities = capabilities,
-            language = detectLanguage(clean)
-        )
+        var onlineUsed = false
+        var onlineFailed = false
+        val conversationForModel = messages
+            .filter { it.text.isNotBlank() }
+            .takeLast(24)
+
+        val response = if (aiApiKey.isNotBlank()) {
+            try {
+                val answer = AiChatClient.generateReply(
+                    apiKey = aiApiKey.trim(),
+                    model = aiModel.trim(),
+                    conversation = conversationForModel
+                )
+                onlineUsed = true
+                answer
+            } catch (_: Exception) {
+                onlineFailed = true
+                localResponse(
+                    query = clean,
+                    capabilities = capabilities,
+                    language = detectLanguage(clean)
+                )
+            }
+        } else {
+            localResponse(
+                query = clean,
+                capabilities = capabilities,
+                language = detectLanguage(clean)
+            )
+        }
+
         val words = response.split(" ")
         var partial = ""
         words.forEachIndexed { index, word ->
@@ -253,7 +284,11 @@ private fun AiFusionApp() {
         }
 
         generating = false
-        status = "Local Chat Core"
+        status = when {
+            onlineUsed -> "AI Assistant • " + aiModel.trim()
+            onlineFailed -> "AI connection failed • Local fallback"
+            else -> "Local Chat Core • Add an API key in Settings for online AI"
+        }
         saveCurrent()
     }
 
@@ -536,6 +571,20 @@ private fun AiFusionApp() {
 
                 AppScreen.SETTINGS -> SettingsScreen(
                     modifier = Modifier.padding(padding),
+                    aiApiKey = aiApiKey,
+                    aiModel = aiModel,
+                    onAiApiKeyChange = { aiApiKey = it },
+                    onAiModelChange = { aiModel = it },
+                    onSaveAiSettings = {
+                        apiKeyStore.setApiKey(aiApiKey.trim())
+                        apiKeyStore.setModel(aiModel.trim())
+                        aiApiKey = apiKeyStore.getApiKey()
+                        aiModel = apiKeyStore.getModel()
+                    },
+                    onClearAiKey = {
+                        apiKeyStore.setApiKey("")
+                        aiApiKey = ""
+                    },
                     clientId = clientId,
                     savedClientId = savedClientId,
                     account = account,
@@ -709,13 +758,13 @@ private fun EmptyState(onOpenResearch: (String) -> Unit) {
         }
         Spacer(Modifier.height(18.dp))
         Text(
-            "What would you like to explore?",
+            "What would you like to ask AI?",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Chat Core 3.0 • local history • adaptive device routing",
+            "AI Assistant • online AI + offline fallback • local history",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -850,6 +899,12 @@ private fun Composer(
 @Composable
 private fun SettingsScreen(
     modifier: Modifier,
+    aiApiKey: String,
+    aiModel: String,
+    onAiApiKeyChange: (String) -> Unit,
+    onAiModelChange: (String) -> Unit,
+    onSaveAiSettings: () -> Unit,
+    onClearAiKey: () -> Unit,
     clientId: String,
     savedClientId: String,
     account: GoogleAccountUi?,
@@ -865,6 +920,61 @@ private fun SettingsScreen(
         modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Card(
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            )
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text("AI Assistant", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (aiApiKey.isBlank()) {
+                        "Offline fallback aktif. Tambah OpenAI API key untuk aktifkan chat AI sebenar."
+                    } else {
+                        "Online AI aktif. API key disimpan secara terenkripsi pada peranti."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = aiApiKey,
+                    onValueChange = onAiApiKeyChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("OpenAI API Key") },
+                    placeholder = { Text("sk-...") }
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = aiModel,
+                    onValueChange = onAiModelChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Model") },
+                    placeholder = { Text("gpt-6-luna") }
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onSaveAiSettings) {
+                        Text("Save AI")
+                    }
+                    TextButton(onClick = onClearAiKey) {
+                        Text("Remove key")
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Jangan masukkan key orang lain atau commit API key ke repository.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         Card(
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(
