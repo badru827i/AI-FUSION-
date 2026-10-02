@@ -107,11 +107,12 @@ class Fusion3DActivity : ComponentActivity(), ContentUtils.ContentResolver {
     private fun loadModel(androidUri: Uri, name: String, extension: String) {
         val uriString = androidUri.toString()
         activeUri = uriString
-        currentModel = Model(URI.create(uriString), name, extension)
+        val model = Model(URI.create(uriString), name, extension)
+        currentModel = model
         modelNameView.text = name
         statusView.text = "Loading $extension…"
 
-        viewModel.initEngine(currentModel) {
+        viewModel.initEngine(model) {
             try {
                 val engine = viewModel.getEngine(uriString)
                     ?: error("3D engine gagal diinisialisasi")
