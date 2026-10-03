@@ -103,6 +103,9 @@ import com.aifusion.app.core.LocalChatStore
 import com.aifusion.app.core.AiChatClient
 import com.aifusion.app.core.ApiKeyStore
 import com.aifusion.app.core.LocalModel
+import com.aifusion.app.core.LocalAnswerEngine
+import com.aifusion.app.core.NetworkGuardian
+import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
 import com.aifusion.app.core.ResourceManager
 import com.aifusion.app.core.ResourceStatus
@@ -309,13 +312,30 @@ private fun AiFusionApp() {
         messages = messages + ChatMessage(aiId, false, "")
         draft = ""
 
+        val network = NetworkGuardian.state(context)
+        val plan = ParallelComputeScheduler.plan(context, clean)
+        val local = LocalAnswerEngine.answer(
+            query = clean,
+            capabilities = capabilities,
+            network = network,
+            modelCount = models.size
+        )
+
+        // Local-first: answer on-device first. Remote AI is only an optional
+        // fallback when the user has configured an API key and the local
+        // layer cannot provide a useful answer.
         var onlineUsed = false
         var onlineFailed = false
-        val conversationForModel = messages
-            .filter { it.text.isNotBlank() }
-            .takeLast(24)
+        val shouldTryRemote = aiApiKey.isNotBlank() &&
+            (clean.contains("terkini", true) ||
+             clean.contains("latest", true) ||
+             clean.contains("current", true) ||
+             clean.contains("cari", true) ||
+             clean.contains("search", true) ||
+             clean.contains("web", true))
 
-        val response = if (aiApiKey.isNotBlank()) {
+        val response = if (shouldTryRemote) {
+            val conversationForModel = messages.filter { it.text.isNotBlank() }.takeLast(24)
             try {
                 val answer = AiChatClient.generateReply(
                     apiKey = aiApiKey.trim(),
@@ -326,18 +346,10 @@ private fun AiFusionApp() {
                 answer
             } catch (_: Exception) {
                 onlineFailed = true
-                localResponse(
-                    query = clean,
-                    capabilities = capabilities,
-                    language = detectLanguage(clean)
-                )
+                local
             }
         } else {
-            localResponse(
-                query = clean,
-                capabilities = capabilities,
-                language = detectLanguage(clean)
-            )
+            local
         }
 
         val words = response.split(" ")
@@ -351,9 +363,9 @@ private fun AiFusionApp() {
 
         generating = false
         status = when {
-            onlineUsed -> "AI Assistant • " + aiModel.trim()
-            onlineFailed -> "AI connection failed • Local fallback"
-            else -> "Local Chat Core • Add an API key in Settings for online AI"
+            onlineUsed -> "AI Assistant • web/remote • " + aiModel.trim()
+            onlineFailed -> "Remote unavailable • Local AI"
+            else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
     }
