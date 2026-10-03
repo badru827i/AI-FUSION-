@@ -53,6 +53,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speaker
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.ViewInAr
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -104,6 +105,7 @@ import com.aifusion.app.core.AiChatClient
 import com.aifusion.app.core.ApiKeyStore
 import com.aifusion.app.core.LocalModel
 import com.aifusion.app.core.LocalAnswerEngine
+import com.aifusion.app.core.LocalLlamaEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
@@ -169,6 +171,7 @@ private fun AiFusionApp() {
     var status by remember { mutableStateOf("") }
     var researchQuery by rememberSaveable { mutableStateOf("") }
     var showHardwareMonitor by rememberSaveable { mutableStateOf(false) }
+    var showToolMenu by rememberSaveable { mutableStateOf(false) }
     var hardwareSample by remember { mutableStateOf(HardwareMonitor.read(context)) }
     var hardwareHistory by remember { mutableStateOf(listOf(hardwareSample)) }
 
@@ -334,6 +337,23 @@ private fun AiFusionApp() {
              clean.contains("search", true) ||
              clean.contains("web", true))
 
+        // Real local inference when a GGUF model has been imported.
+        // Current GGUF runtime is CPU/NEON on arm64-v8a; unsupported phones safely fall back.
+        val localGgufModel = models.firstOrNull { it.format.equals("GGUF", ignoreCase = true) }
+        val localNeural = if (!shouldTryRemote && localGgufModel != null) {
+            runCatching {
+                LocalLlamaEngine.generate(
+                    context = context,
+                    modelUri = android.net.Uri.parse(localGgufModel.uri),
+                    modelName = localGgufModel.name,
+                    prompt = clean,
+                    capabilities = capabilities
+                )
+            }.getOrNull()
+        } else {
+            null
+        }
+
         val response = if (shouldTryRemote) {
             val conversationForModel = messages.filter { it.text.isNotBlank() }.takeLast(24)
             try {
@@ -346,10 +366,10 @@ private fun AiFusionApp() {
                 answer
             } catch (_: Exception) {
                 onlineFailed = true
-                local
+                localNeural ?: local
             }
         } else {
-            local
+            localNeural ?: local
         }
 
         val words = response.split(" ")
@@ -364,7 +384,9 @@ private fun AiFusionApp() {
         generating = false
         status = when {
             onlineUsed -> "AI Assistant • web/remote • " + aiModel.trim()
-            onlineFailed -> "Remote unavailable • Local AI"
+            onlineFailed && localNeural != null -> "Remote unavailable • Local GGUF"
+            onlineFailed -> "Remote unavailable • Local fallback"
+            localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
             else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
@@ -450,11 +472,10 @@ private fun AiFusionApp() {
                 if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else 0L
             } ?: 0L
 
-            val format = name.substringAfterLast('.', "unknown").lowercase()
-            if (format == "onnx" || format == "tflite" || format == "lite") {
-                modelStore.add(uri, name, format, sizeBytes)
-                models = modelStore.list()
-            }
+            // Universal model import: ModelManager detects the actual supported file family.
+            // Runtime support is shown in Model Manager; GGUF can run locally today.
+            modelStore.add(uri, name, "", sizeBytes)
+            models = modelStore.list()
         }
     }
 
@@ -598,7 +619,8 @@ private fun AiFusionApp() {
                     },
                     onOpen3D = {
                         draft = "Bina model 3D: "
-                    }
+                    },
+                    onTools = { showToolMenu = true }
                 )
 
                 AppScreen.HISTORY -> HistoryScreen(
@@ -770,6 +792,43 @@ private fun AiFusionApp() {
                     sample = hardwareSample,
                     history = hardwareHistory,
                     onClose = { showHardwareMonitor = false }
+                )
+            }
+
+            if (showToolMenu) {
+                AlertDialog(
+                    onDismissRequest = { showToolMenu = false },
+                    title = { Text("AI-FUSION Tools") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                researchQuery = ""
+                                screen = AppScreen.RESEARCH
+                            }) { Text("Research / Fact Check") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                screen = AppScreen.MODEL_MANAGER
+                                models = modelStore.list()
+                            }) { Text("Local Model Manager") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                capabilities = DeviceOptimizer.detect(context)
+                                screen = AppScreen.DEVICE
+                            }) { Text("Smart Device / CPU-GPU-NPU") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                context.startActivity(Intent(context, Fusion3DActivity::class.java))
+                            }) { Text("3D Studio") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                screen = AppScreen.SKILLS
+                            }) { Text("All AI Skills") }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showToolMenu = false }) { Text("Close") }
+                    }
                 )
             }
             }

@@ -59,6 +59,8 @@ dependencies {
     implementation("androidx.credentials:credentials:1.6.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
+    // Real on-device GGUF LLM inference (CPU/NEON, arm64-v8a, API 24+).
+    implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
 
     implementation(project(":engine"))
 }
