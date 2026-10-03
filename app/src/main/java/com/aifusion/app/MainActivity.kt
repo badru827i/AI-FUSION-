@@ -37,7 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Close
@@ -48,7 +48,7 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speaker
 import androidx.compose.material.icons.outlined.Visibility
@@ -56,7 +56,7 @@ import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -217,7 +217,7 @@ private fun AiFusionApp() {
     }
 
     fun speak(text: String) {
-        val languageResult = tts.setLanguage(Locale("ms", "MY"))
+        val languageResult = tts.setLanguage(Locale.forLanguageTag("ms-MY"))
         val bm = languageResult == TextToSpeech.LANG_AVAILABLE ||
             languageResult == TextToSpeech.LANG_COUNTRY_AVAILABLE
         if (!bm) {
@@ -509,7 +509,7 @@ private fun AiFusionApp() {
                     }
 
                     Spacer(Modifier.weight(1f))
-                    Divider()
+                    HorizontalDivider()
                     Spacer(Modifier.height(10.dp))
                     Text(
                         "AI-FUSION Chat Core 3.0",
@@ -538,7 +538,6 @@ private fun AiFusionApp() {
                                 AppScreen.DEVICE -> "Smart Device"
                                 AppScreen.MODEL_MANAGER -> "Model Manager"
                                 AppScreen.SETTINGS -> "Settings"
-                                else -> "AI-FUSION"
                             },
                             fontWeight = FontWeight.SemiBold
                         )
@@ -552,7 +551,7 @@ private fun AiFusionApp() {
                             }
                         }) {
                             Icon(
-                                if (screen == AppScreen.CHAT) Icons.Outlined.Menu else Icons.Outlined.ArrowBack,
+                                if (screen == AppScreen.CHAT) Icons.Outlined.Menu else Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = if (screen == AppScreen.CHAT) "Menu" else "Back"
                             )
                         }
@@ -1118,7 +1117,7 @@ private fun Composer(
                 Icon(Icons.Outlined.Mic, contentDescription = "Voice")
             }
             IconButton(onClick = onSend, enabled = draft.isNotBlank()) {
-                Icon(Icons.Outlined.Send, contentDescription = "Send")
+                Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Send")
             }
         }
     }
