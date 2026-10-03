@@ -974,7 +974,8 @@ private fun ChatHome(
     onVoice: () -> Unit,
     onSpeak: (String) -> Unit,
     onOpenResearch: (String) -> Unit,
-    onOpen3D: () -> Unit
+    onOpen3D: () -> Unit,
+    onTools: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -1024,6 +1025,7 @@ private fun ChatHome(
             onDraftChange = onDraftChange,
             onSend = onSend,
             onVoice = onVoice,
+            onTools = onTools,
             modifier = Modifier.fillMaxWidth().imePadding()
         )
         Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -1148,6 +1150,7 @@ private fun Composer(
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onVoice: () -> Unit,
+    onTools: () -> Unit,
     modifier: Modifier
 ) {
     Surface(
@@ -1160,7 +1163,7 @@ private fun Composer(
             modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            IconButton(onClick = {}) {
+            IconButton(onClick = onTools) {
                 Icon(Icons.Outlined.Add, contentDescription = "Tools")
             }
             androidx.compose.foundation.text.BasicTextField(
