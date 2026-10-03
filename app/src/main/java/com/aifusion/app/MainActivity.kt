@@ -1,6 +1,7 @@
 package com.aifusion.app
 
 import android.Manifest
+import android.graphics.BitmapFactory
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -106,6 +107,7 @@ import com.aifusion.app.core.ApiKeyStore
 import com.aifusion.app.core.LocalModel
 import com.aifusion.app.core.LocalAnswerEngine
 import com.aifusion.app.core.LocalLlamaEngine
+import com.aifusion.app.core.LocalOcrEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
@@ -434,6 +436,32 @@ private fun AiFusionApp() {
             voiceLauncher.launch(intent)
         } else {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    val ocrLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val idUser = nextMessageId++
+                val idAi = nextMessageId++
+                screen = AppScreen.CHAT
+                messages = messages + ChatMessage(idUser, true, "Image OCR: " + (uri.lastPathSegment ?: "image"))
+                messages = messages + ChatMessage(idAi, false, "")
+                draft = ""
+                generating = true
+                status = "OCR • local"
+                val text = runCatching { LocalOcrEngine.recognize(context, uri) }.getOrNull()
+                val response = when {
+                    !text.isNullOrBlank() -> "OCR berjaya (local):\n\n$text"
+                    else -> "OCR tidak dapat membaca imej ini pada peranti."
+                }
+                messages = messages.dropLast(1) + ChatMessage(idAi, false, response)
+                generating = false
+                status = if (!text.isNullOrBlank()) "Vision/OCR • local" else "Vision/OCR unavailable"
+                saveCurrent()
+            }
         }
     }
 
@@ -820,6 +848,10 @@ private fun AiFusionApp() {
                                 showToolMenu = false
                                 context.startActivity(Intent(context, Fusion3DActivity::class.java))
                             }) { Text("3D Studio") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                ocrLauncher.launch(arrayOf("image/*"))
+                            }) { Text("Image / OCR") }
                             TextButton(onClick = {
                                 showToolMenu = false
                                 screen = AppScreen.SKILLS
