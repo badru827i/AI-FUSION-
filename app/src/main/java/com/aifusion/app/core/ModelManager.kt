@@ -30,8 +30,10 @@ class ModelManager(context: Context) {
             }
     }
 
-    fun add(uri: Uri, name: String, format: String, sizeBytes: Long) {
-        val item = LocalModel(uri.toString(), name, format, sizeBytes)
+    fun add(uri: Uri, name: String, format: String = "", sizeBytes: Long) {
+        val detected = ModelFormatDetector.detect(uri, name)
+        val normalizedFormat = format.ifBlank { detected.format.name }
+        val item = LocalModel(uri.toString(), name, normalizedFormat, sizeBytes)
         val next = list().filterNot { it.uri == item.uri } + item
         save(next)
     }
