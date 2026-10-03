@@ -1,11 +1,13 @@
 package com.aifusion.app
 
 import java.io.File
+import kotlin.math.cos
+import kotlin.math.sin
 
 object Local3DBuilder {
     fun build(prompt: String, directory: File): File {
         val clean = prompt.trim().lowercase()
-        val (name, vertices, faces) = when {
+        val shape = when {
             "pyramid" in clean || "piramid" in clean -> Triple(
                 "Pyramid",
                 listOf(
@@ -43,14 +45,29 @@ object Local3DBuilder {
                     intArrayOf(3, 7, 8, 4), intArrayOf(5, 1, 4, 8)
                 )
             )
-        
+        }
+        val (name, vertices, faces) = shape
+
+        if (!directory.exists() && !directory.mkdirs()) error("Tidak dapat menyediakan folder 3D")
+
+        val file = File(directory, "AI3D_${System.currentTimeMillis()}.obj")
+        file.bufferedWriter().use { out ->
+            out.appendLine("# AI-FUSION Local 3D Builder")
+            out.appendLine("# Prompt: $prompt")
+            out.appendLine("o $name")
+            vertices.forEach { (x, y, z) -> out.appendLine("v $x $y $z") }
+            faces.forEach { face -> out.appendLine("f ${face.joinToString(" ")}") }
+        }
+        return file
+    }
+
     private fun cylinder(): Triple<String, List<Triple<Float, Float, Float>>, List<IntArray>> {
         val sides = 16
         val vertices = buildList {
             repeat(sides) { i ->
-                val a = (2.0 * Math.PI * i / sides).toFloat()
-                add(Triple(kotlin.math.cos(a), -1f, kotlin.math.sin(a)))
-                add(Triple(kotlin.math.cos(a), 1f, kotlin.math.sin(a)))
+                val a = 2.0 * Math.PI * i / sides
+                add(Triple(cos(a).toFloat(), -1f, sin(a).toFloat()))
+                add(Triple(cos(a).toFloat(), 1f, sin(a).toFloat()))
             }
         }
         val faces = buildList {
@@ -67,21 +84,13 @@ object Local3DBuilder {
         val faces = mutableListOf<IntArray>()
         fun box(cx: Float, cy: Float, cz: Float, sx: Float, sy: Float, sz: Float) {
             val start = vertices.size + 1
-            val x0 = cx - sx; val x1 = cx + sx
-            val y0 = cy - sy; val y1 = cy + sy
-            val z0 = cz - sz; val z1 = cz + sz
             vertices += listOf(
-                Triple(x0,y0,z0), Triple(x1,y0,z0), Triple(x1,y1,z0), Triple(x0,y1,z0),
-                Triple(x0,y0,z1), Triple(x1,y0,z1), Triple(x1,y1,z1), Triple(x0,y1,z1)
+                Triple(cx-sx,cy-sy,cz-sz), Triple(cx+sx,cy-sy,cz-sz),
+                Triple(cx+sx,cy+sy,cz-sz), Triple(cx-sx,cy+sy,cz-sz),
+                Triple(cx-sx,cy-sy,cz+sz), Triple(cx+sx,cy-sy,cz+sz),
+                Triple(cx+sx,cy+sy,cz+sz), Triple(cx-sx,cy+sy,cz+sz)
             )
-            faces += listOf(
-                intArrayOf(start,start+1,start+2,start+3),
-                intArrayOf(start+4,start+7,start+6,start+5),
-                intArrayOf(start,start+4,start+5,start+1),
-                intArrayOf(start+1,start+5,start+6,start+2),
-                intArrayOf(start+2,start+6,start+7,start+3),
-                intArrayOf(start+4,start,start+3,start+7)
-            )
+            faces += boxFaces(start)
         }
         box(0f, 0f, 0f, 0.7f, 1.0f, 0.45f)
         box(0f, 1.45f, 0f, 0.5f, 0.45f, 0.4f)
@@ -101,32 +110,19 @@ object Local3DBuilder {
                 Triple(cx-sx,cy-sy,cz+sz), Triple(cx+sx,cy-sy,cz+sz),
                 Triple(cx+sx,cy+sy,cz+sz), Triple(cx-sx,cy+sy,cz+sz)
             )
-            faces += listOf(
-                intArrayOf(start,start+1,start+2,start+3),
-                intArrayOf(start+4,start+7,start+6,start+5),
-                intArrayOf(start,start+4,start+5,start+1),
-                intArrayOf(start+1,start+5,start+6,start+2),
-                intArrayOf(start+2,start+6,start+7,start+3),
-                intArrayOf(start+4,start,start+3,start+7)
-            )
+            faces += boxFaces(start)
         }
         box(0f, 0f, 0f, 1.9f, 0.35f, 0.8f)
         box(0.35f, 0.62f, 0f, 1.05f, 0.3f, 0.68f)
         return Triple("Car Body", vertices, faces)
     }
 
-}
-
-        if (!directory.exists() && !directory.mkdirs()) error("Tidak dapat menyediakan folder 3D")
-
-        val file = File(directory, "AI3D_${System.currentTimeMillis()}.obj")
-        file.bufferedWriter().use { out ->
-            out.appendLine("# AI-FUSION Local 3D Builder")
-            out.appendLine("# Prompt: $prompt")
-            out.appendLine("o $name")
-            vertices.forEach { (x, y, z) -> out.appendLine("v $x $y $z") }
-            faces.forEach { face -> out.appendLine("f ${face.joinToString(" ")}") }
-        }
-        return file
-    }
+    private fun boxFaces(start: Int): List<IntArray> = listOf(
+        intArrayOf(start,start+1,start+2,start+3),
+        intArrayOf(start+4,start+7,start+6,start+5),
+        intArrayOf(start,start+4,start+5,start+1),
+        intArrayOf(start+1,start+5,start+6,start+2),
+        intArrayOf(start+2,start+6,start+7,start+3),
+        intArrayOf(start+4,start,start+3,start+7)
+    )
 }
