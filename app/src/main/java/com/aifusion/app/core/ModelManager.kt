@@ -12,6 +12,7 @@ data class LocalModel(
 )
 
 class ModelManager(context: Context) {
+    companion object { const val MAX_MODELS = 10 }
     private val prefs = context.getSharedPreferences("ai_fusion_models", Context.MODE_PRIVATE)
 
     fun list(): List<LocalModel> {
@@ -34,7 +35,7 @@ class ModelManager(context: Context) {
         val detected = ModelFormatDetector.detect(uri, name)
         val normalizedFormat = if (detected.format != AiModelFormat.UNKNOWN) detected.format.name else format.ifBlank { "UNKNOWN" }
         val item = LocalModel(uri.toString(), name, normalizedFormat, sizeBytes)
-        val next = list().filterNot { it.uri == item.uri } + item
+        val next = (list().filterNot { it.uri == item.uri } + item).takeLast(MAX_MODELS)
         save(next)
     }
 
