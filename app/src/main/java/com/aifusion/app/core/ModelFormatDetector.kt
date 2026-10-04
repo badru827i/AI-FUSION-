@@ -22,9 +22,9 @@ object ModelFormatDetector {
         return when {
             name.endsWith(".gguf") -> info(AiModelFormat.GGUF, ext, "llama.cpp", true, "Quantized LLM; Q2/Q3/Q4/Q5/Q6/Q8 variants.")
             name.endsWith(".ggml") -> info(AiModelFormat.GGML, ext, "llama.cpp", false, "Legacy llama.cpp format; convert to GGUF when possible.")
-            name.endsWith(".onnx") -> info(AiModelFormat.ONNX, ext, "ONNX Runtime", true, "Runtime support depends on model operators and execution provider.")
-            name.endsWith(".tflite") || name.endsWith(".lite") -> info(AiModelFormat.TFLITE, ext, "LiteRT / TensorFlow Lite", true, "Mobile format; delegate support depends on device.")
-            name.endsWith(".pte") -> info(AiModelFormat.EXECUTORCH, ext, "ExecuTorch", true, "PyTorch edge format; backend/operator support is model dependent.")
+            name.endsWith(".onnx") -> info(AiModelFormat.ONNX, ext, "ONNX Runtime", false, "Format detected and importable; runtime adapter is not bundled yet.")
+            name.endsWith(".tflite") || name.endsWith(".lite") -> info(AiModelFormat.TFLITE, ext, "LiteRT / TensorFlow Lite", false, "Format detected and importable; runtime adapter is not bundled yet.")
+            name.endsWith(".pte") -> info(AiModelFormat.EXECUTORCH, ext, "ExecuTorch", false, "Format detected and importable; matching ExecuTorch runtime is not bundled yet.")
             name.endsWith(".safetensors") -> info(AiModelFormat.SAFETENSORS, ext, "Importer / converter", false, "Weights container; not a universal Android inference format by itself.")
             name.endsWith(".pth") -> info(AiModelFormat.PYTORCH, ext, "PyTorch importer", false, "Usually needs conversion to a mobile runtime format.")
             name.endsWith(".pt") -> info(AiModelFormat.TORCHSCRIPT, ext, "PyTorch / TorchScript", false, "May be TorchScript or a training checkpoint; inspect metadata before loading.")
