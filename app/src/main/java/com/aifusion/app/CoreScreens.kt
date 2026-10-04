@@ -344,6 +344,7 @@ fun ModelManagerScreen(
     modifier: Modifier,
     models: List<LocalModel>,
     modelTier: String,
+    testStatus: String,
     onImport: () -> Unit,
     onTest: (LocalModel) -> Unit,
     onDelete: (String) -> Unit
@@ -359,6 +360,13 @@ fun ModelManagerScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text("Recommended route: " + modelTier, style = MaterialTheme.typography.bodyLarge)
+            if (testStatus.isNotBlank()) {
+                Text(
+                    testStatus,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Button(onClick = onImport) {
                 Icon(Icons.Outlined.Upload, contentDescription = null)
                 Spacer(Modifier.padding(horizontal = 3.dp))
