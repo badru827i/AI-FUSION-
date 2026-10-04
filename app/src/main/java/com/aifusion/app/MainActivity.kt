@@ -198,12 +198,10 @@ private fun AiFusionApp() {
     var showSettingsPassword by rememberSaveable { mutableStateOf(false) }
     var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
     var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
+    // OAuth client ID is injected at build time from the GitHub Actions secret.
+    // It is intentionally not editable or displayed in the app UI.
     val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
     val buildClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
-    val storedClientId = googlePrefs.getString("client_id", "").orEmpty().trim()
-    val effectiveClientId = storedClientId.ifBlank { buildClientId }
-    var clientId by rememberSaveable { mutableStateOf(effectiveClientId) }
-    var savedClientId by rememberSaveable { mutableStateOf(effectiveClientId) }
     var account by remember {
         mutableStateOf(
             googlePrefs.getString("email", null)?.let { email ->
@@ -884,23 +882,14 @@ private fun AiFusionApp() {
                         apiKeyStore.setApiKey("")
                         aiApiKey = ""
                     },
-                    clientId = clientId,
-                    savedClientId = savedClientId,
                     account = account,
-                    showClientId = showSettingsPassword,
-                    onShowClientId = { showSettingsPassword = !showSettingsPassword },
-                    onClientIdChange = { clientId = it },
-                    onSaveClientId = {
-                        savedClientId = clientId.trim()
-                        googlePrefs.edit().putString("client_id", savedClientId).apply()
-                    },
                     resourceStatus = resourceStatus,
                     onClearCache = {
                         ResourceManager.clearTemporaryCache(context)
                         resourceStatus = ResourceManager.status(context)
                     },
                     onSignIn = {
-                        val id = savedClientId.trim()
+                        val id = buildClientId
                         if (id.isNotBlank() && id.contains(".apps.googleusercontent.com")) {
                             scope.launch {
                                 try {
@@ -1528,15 +1517,9 @@ private fun SettingsScreen(
     onAiModelChange: (String) -> Unit,
     onSaveAiSettings: () -> Unit,
     onClearAiKey: () -> Unit,
-    clientId: String,
-    savedClientId: String,
     account: GoogleAccountUi?,
     resourceStatus: ResourceStatus,
     onClearCache: () -> Unit,
-    showClientId: Boolean,
-    onShowClientId: () -> Unit,
-    onClientIdChange: (String) -> Unit,
-    onSaveClientId: () -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit
 ) {
@@ -1632,48 +1615,6 @@ private fun SettingsScreen(
                             Text("Sign out")
                         }
                     }
-                }
-            }
-        }
-
-        Card(
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-            )
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("Google Web OAuth Client ID", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = clientId,
-                    onValueChange = onClientIdChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    visualTransformation = if (showClientId) {
-                        androidx.compose.ui.text.input.VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    label = { Text("Web Client ID") },
-                    placeholder = { Text("xxxx.apps.googleusercontent.com") },
-                    trailingIcon = {
-                        TextButton(onClick = onShowClientId) {
-                            Text(if (showClientId) "Hide" else "Show")
-                        }
-                    }
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onSaveClientId) {
-                        Text("Save")
-                    }
-                    Text(
-                        "Local-first",
-                        modifier = Modifier.padding(top = 10.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                 }
             }
         }
