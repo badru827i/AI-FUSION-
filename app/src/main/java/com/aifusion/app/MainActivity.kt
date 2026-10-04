@@ -648,6 +648,79 @@ private fun AiFusionApp() {
         }
     }
 
+
+    suspend fun signInGoogle() {
+        val id = buildClientId
+        if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) {
+            status = "Google Sign-In belum dikonfigurasi"
+            return
+        }
+        try {
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setServerClientId(id)
+                .setFilterByAuthorizedAccounts(false)
+                .setAutoSelectEnabled(true)
+                .setNonce(java.util.UUID.randomUUID().toString())
+                .build()
+
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+
+            val result = CredentialManager.create(context).getCredential(
+                request = request,
+                context = context
+            )
+            val credential = result.credential
+
+            if (
+                credential is CustomCredential &&
+                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+            ) {
+                val googleCredential = try {
+                    GoogleIdTokenCredential.createFrom(credential.data)
+                } catch (_: GoogleIdTokenParsingException) {
+                    null
+                }
+
+                googleCredential?.let {
+                    val email = it.email.orEmpty().trim()
+                    if (email.isBlank()) error("Google tidak memulangkan email akaun")
+                    val displayName = it.displayName.orEmpty().trim().ifBlank {
+                        email.substringBefore("@").ifBlank { "Google user" }
+                    }
+                    val uniqueId = it.uniqueId.orEmpty().trim()
+                    googlePrefs.edit()
+                        .putString("display_name", displayName)
+                        .putString("email", email)
+                        .putString("unique_id", uniqueId)
+                        .apply()
+                    account = GoogleAccountUi(displayName = displayName, email = email)
+                    status = "Signed in • Google account active (local)"
+                } ?: error("Google credential tidak dapat dibaca")
+            } else {
+                error("Credential Google tidak diterima")
+            }
+        } catch (error: Exception) {
+            val message = error.message
+                ?.replace("\\n", " ")
+                ?.take(180)
+                .orEmpty()
+            status = if (message.isBlank()) {
+                "Google Sign-In dibatalkan/gagal"
+            } else {
+                "Sign-in error: $message"
+            }
+        }
+    }
+
+    if (account == null) {
+        LoginScreen(
+            status = status,
+            signingIn = status.startsWith("Signing in", ignoreCase = true),
+            onSignIn = { scope.launch { signInGoogle() } }
+        )
+    } else {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -889,69 +962,7 @@ private fun AiFusionApp() {
                         resourceStatus = ResourceManager.status(context)
                     },
                     onSignIn = {
-                        val id = buildClientId
-                        if (id.isNotBlank() && id.contains(".apps.googleusercontent.com")) {
-                            scope.launch {
-                                try {
-                                    val googleIdOption = GetGoogleIdOption.Builder()
-                                        .setServerClientId(id)
-                                        .setFilterByAuthorizedAccounts(false)
-                                        .setAutoSelectEnabled(true)
-                                        .setNonce(java.util.UUID.randomUUID().toString())
-                                        .build()
-
-                                    val request = GetCredentialRequest.Builder()
-                                        .addCredentialOption(googleIdOption)
-                                        .build()
-
-                                    val result = CredentialManager.create(context).getCredential(
-                                        request = request,
-                                        context = context
-                                    )
-                                    val credential = result.credential
-
-                                    if (
-                                        credential is CustomCredential &&
-                                        credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                                    ) {
-                                        val googleCredential = try {
-                                            GoogleIdTokenCredential.createFrom(credential.data)
-                                        } catch (_: GoogleIdTokenParsingException) {
-                                            null
-                                        }
-
-                                        googleCredential?.let {
-                                            val email = it.email.orEmpty().trim()
-                                            if (email.isBlank()) error("Google tidak memulangkan email akaun")
-                                            val displayName = it.displayName.orEmpty().trim().ifBlank {
-                                                email.substringBefore("@").ifBlank { "Google user" }
-                                            }
-                                            val uniqueId = it.uniqueId.orEmpty().trim()
-                                            googlePrefs.edit()
-                                                .putString("display_name", displayName)
-                                                .putString("email", email)
-                                                .putString("unique_id", uniqueId)
-                                                .apply()
-                                            account = GoogleAccountUi(
-                                                displayName = displayName,
-                                                email = email
-                                            )
-                                            status = "Signed in • Google account active (local)"
-                                        }
-                                    }
-                                } catch (error: Exception) {
-                                    val message = error.message
-                                        ?.replace("\\n", " ")
-                                        ?.take(180)
-                                        .orEmpty()
-                                    status = if (message.isBlank()) {
-                                        "Google/Firebase sign-in failed"
-                                    } else {
-                                        "Sign-in error: $message"
-                                    }
-                                }
-                            }
-                        }
+                        scope.launch { signInGoogle() }
                     },
                     onSignOut = {
                         scope.launch {
@@ -1028,6 +1039,82 @@ private fun AiFusionApp() {
             }
         }
     }
+
+    }
+
+
+@Composable
+private fun LoginScreen(
+    status: String,
+    signingIn: Boolean,
+    onSignIn: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                modifier = Modifier.size(82.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(22.dp))
+            Text(
+                "AI-FUSION",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Sign in with Google untuk mula menggunakan AI Assistant.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = onSignIn,
+                enabled = !signingIn,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (signingIn) "Signing in…" else "Continue with Google")
+            }
+
+            if (status.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "Chat, history dan data AI disimpan secara lokal pada telefon.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 @Composable
 private fun HardwareMonitorPanel(
@@ -1599,7 +1686,7 @@ private fun SettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 Button(
                     onClick = onSignIn,
-                    enabled = savedClientId.contains(".apps.googleusercontent.com")
+                    enabled = buildClientId.contains(".apps.googleusercontent.com")
                 ) {
                     Text(if (account == null) "Continue with Google" else "Reconnect Google")
                 }
