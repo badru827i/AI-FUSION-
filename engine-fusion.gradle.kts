@@ -6,7 +6,7 @@ val engineRoot = rootProject.file("engine")
 
 android {
     namespace = "org.the3deer.android.engine"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
