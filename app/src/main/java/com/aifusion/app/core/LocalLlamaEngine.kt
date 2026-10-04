@@ -29,6 +29,14 @@ object LocalLlamaEngine {
 
         val safeName = modelName.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "model.gguf" }
         val modelFile = File(modelDir, safeName)
+        val availableRamMb = runCatching {
+            val info = android.app.ActivityManager.MemoryInfo()
+            context.getSystemService(android.app.ActivityManager::class.java)?.getMemoryInfo(info)
+            info.availMem / (1024L * 1024L)
+        }.getOrDefault(0L)
+        if (modelFile.length() > 0L && availableRamMb > 0L && modelFile.length() > availableRamMb * 1024L * 1024L / 2L) {
+            return null
+        }
         if (!modelFile.exists()) {
             context.contentResolver.openInputStream(modelUri)?.use { input ->
                 FileOutputStream(modelFile).use { output -> input.copyTo(output) }
