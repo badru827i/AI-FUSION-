@@ -654,6 +654,8 @@ private fun AiFusionApp() {
         signingIn = true
         status = "Signing in…"
         try {
+            val activityContext = context as? Activity
+                ?: error("Google Sign-In memerlukan Activity context")
             val id = buildClientId
             if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) {
                 status = "Google Sign-In belum dikonfigurasi"
@@ -670,9 +672,10 @@ private fun AiFusionApp() {
                 .addCredentialOption(googleIdOption)
                 .build()
 
-            val result = CredentialManager.create(context).getCredential(
+            val credentialManager = CredentialManager.create(activityContext)
+            val result = credentialManager.getCredential(
                 request = request,
-                context = context
+                context = activityContext
             )
             val credential = result.credential
 
@@ -688,6 +691,8 @@ private fun AiFusionApp() {
 
                 googleCredential?.let {
                     val email = it.email.orEmpty().trim()
+                    val idToken = it.idToken.orEmpty().trim()
+                    if (idToken.isBlank()) error("Google tidak memulangkan ID token")
                     if (email.isBlank()) error("Google tidak memulangkan email akaun")
                     val displayName = it.displayName.orEmpty().trim().ifBlank {
                         email.substringBefore("@").ifBlank { "Google user" }
