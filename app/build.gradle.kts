@@ -19,7 +19,7 @@ android {
         buildConfigField(
             "String",
             "GOOGLE_CLIENT_ID",
-            "\\"${System.getenv("GOOGLE_CLIENT_ID") ?: ""}\\""
+            "\"${System.getenv("GOOGLE_CLIENT_ID") ?: ""}\""
         )
     }
 
