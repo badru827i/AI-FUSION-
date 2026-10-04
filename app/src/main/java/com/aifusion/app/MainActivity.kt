@@ -121,6 +121,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 private enum class AppScreen {
@@ -157,6 +158,7 @@ private fun AiFusionApp() {
     var models by remember { mutableStateOf(modelStore.list()) }
     var resourceStatus by remember { mutableStateOf(ResourceManager.status(context)) }
     var modelTestStatus by rememberSaveable { mutableStateOf("") }
+    var mediaStatus by rememberSaveable { mutableStateOf("") }
 
     var screen by rememberSaveable { mutableStateOf(AppScreen.CHAT) }
     var sessionId by rememberSaveable {
@@ -393,6 +395,64 @@ private fun AiFusionApp() {
             else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
+    }
+
+    fun openGeneratedFile(result: com.aifusion.app.core.MediaGenerationResult) {
+        runCatching {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "com.aifusion.app.fileprovider",
+                result.file
+            )
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, result.mimeType)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            )
+        }.onFailure {
+            mediaStatus = "Fail buka ${result.type}: ${it.message ?: "tiada aplikasi viewer"}"
+        }
+    }
+
+    fun generateLocalImage() {
+        scope.launch {
+            mediaStatus = "Generating local image…"
+            val result = runCatching {
+                withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    com.aifusion.app.core.LocalMediaGenerator.generateImage(
+                        context,
+                        messages.lastOrNull()?.text ?: "AI-FUSION concept"
+                    )
+                }
+            }.getOrNull()
+            mediaStatus = if (result != null) {
+                "Image ready • ${result.file.name} • local/offline"
+            } else {
+                "Image generation failed."
+            }
+            result?.let { openGeneratedFile(it) }
+        }
+    }
+
+    fun generateLocalVideo() {
+        scope.launch {
+            mediaStatus = "Generating local video…"
+            val result = runCatching {
+                withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    com.aifusion.app.core.LocalMediaGenerator.generateVideo(
+                        context,
+                        messages.lastOrNull()?.text ?: "AI-FUSION motion concept"
+                    )
+                }
+            }.getOrNull()
+            mediaStatus = if (result != null) {
+                "Video ready • ${result.file.name} • local/offline"
+            } else {
+                "Video generation failed on this device."
+            }
+            result?.let { openGeneratedFile(it) }
+        }
     }
 
     fun testModel(model: com.aifusion.app.core.LocalModel) {
@@ -895,8 +955,19 @@ private fun AiFusionApp() {
                             }) { Text("Image / OCR") }
                             TextButton(onClick = {
                                 showToolMenu = false
+                                generateLocalImage()
+                            }) { Text("Create Image • Local") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                generateLocalVideo()
+                            }) { Text("Create Video • Local") }
+                            TextButton(onClick = {
+                                showToolMenu = false
                                 screen = AppScreen.SKILLS
                             }) { Text("All AI Skills") }
+                            if (mediaStatus.isNotBlank()) {
+                                Text(mediaStatus, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     },
                     confirmButton = {
