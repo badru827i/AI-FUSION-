@@ -4,6 +4,7 @@ import android.Manifest
 import android.graphics.BitmapFactory
 import android.app.Activity
 import android.content.Intent
+import android.content.MutableContextWrapper
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -673,9 +674,10 @@ private fun AiFusionApp() {
                 .build()
 
             val credentialManager = CredentialManager.create(activityContext)
+            val mutableContext = MutableContextWrapper(activityContext)
             val result = credentialManager.getCredential(
                 request = request,
-                context = activityContext
+                context = mutableContext
             )
             val credential = result.credential
 
