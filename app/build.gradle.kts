@@ -13,6 +13,14 @@ android {
         targetSdk = 36
         versionCode = 4
         versionName = "4.4.0"
+
+        // Public OAuth client ID is injected from the build environment.
+        // OAuth client IDs are not secrets; never put client secrets/private keys in the APK.
+        buildConfigField(
+            "String",
+            "GOOGLE_CLIENT_ID",
+            "\\"${System.getenv("GOOGLE_CLIENT_ID") ?: ""}\\""
+        )
     }
 
     buildTypes {
