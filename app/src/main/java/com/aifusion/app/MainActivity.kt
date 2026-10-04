@@ -311,6 +311,45 @@ private fun AiFusionApp() {
             return
         }
 
+        val routedTool = FusionToolRouter.detectTool(clean)
+        if (routedTool == FusionToolRouter.Tool.IMAGE_CREATE || routedTool == FusionToolRouter.Tool.VIDEO_CREATE) {
+            generating = true
+            val userId = nextMessageId++
+            val aiId = nextMessageId++
+            messages = messages + ChatMessage(userId, true, clean)
+            messages = messages + ChatMessage(aiId, false, "")
+            draft = ""
+            status = if (routedTool == FusionToolRouter.Tool.IMAGE_CREATE) "Image Create • local/offline" else "Video Create • local/offline"
+            runCatching {
+                withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    if (routedTool == FusionToolRouter.Tool.IMAGE_CREATE) {
+                        com.aifusion.app.core.LocalMediaGenerator.generateImage(context, clean)
+                    } else {
+                        com.aifusion.app.core.LocalMediaGenerator.generateVideo(context, clean, 3)
+                    }
+                }
+            }.onSuccess { result ->
+                val label = if (result.type == "PNG") "Local image siap" else "Local video siap"
+                messages = messages.dropLast(1) + ChatMessage(
+                    aiId,
+                    false,
+                    label + ": " + result.file.name + "\n\nIni ialah generator prosedural lokal; bukan model diffusion/video AI."
+                )
+                mediaStatus = result.type + " ready • " + result.file.name
+                openGeneratedFile(result)
+            }.onFailure { error ->
+                messages = messages.dropLast(1) + ChatMessage(
+                    aiId,
+                    false,
+                    "Create error: " + (error.message ?: "gagal menjana media")
+                )
+                mediaStatus = "Create error"
+            }
+            generating = false
+            saveCurrent()
+            return
+        }
+
         generating = true
         status = "● ● ●"
         val userId = nextMessageId++
