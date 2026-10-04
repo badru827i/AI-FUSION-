@@ -18,7 +18,8 @@ data class ResearchResult(
     val query: String,
     val agentName: String,
     val summary: String,
-    val sources: List<ResearchSource>
+    val sources: List<ResearchSource>,
+    val verification: VerificationReport? = null
 )
 
 object ResearchCore {
@@ -26,15 +27,19 @@ object ResearchCore {
         val clean = query.trim()
         if (clean.isBlank()) return@coroutineScope emptyList()
 
-        listOf(
+        val results = listOf(
             "Discovery Agent" to clean,
             "Verification Agent" to (clean + " facts evidence"),
-            "Current-Change Agent" to (clean + " latest updates")
+            "Current-Change Agent" to (clean + " latest updates"),
+            "Primary-Source Agent" to (clean + " official documentation primary source")
         ).map { pair ->
             async(Dispatchers.IO) {
                 runAgent(pair.first, pair.second)
             }
         }.awaitAll()
+
+        val report = FactVerificationEngine.evaluate(results)
+        results.map { result -> result.copy(verification = report) }
     }
 
     private suspend fun runAgent(name: String, query: String): ResearchResult = withContext(Dispatchers.IO) {
@@ -42,7 +47,7 @@ object ResearchCore {
         val summary = if (sources.isEmpty()) {
             "Tiada sumber web berjaya diambil. Semak sambungan Internet atau cuba query yang lebih khusus."
         } else {
-            "Ditemui " + sources.size + " sumber. Semak sumber di bawah sebelum membuat kesimpulan; hasil ini ialah carian web dan bukan pengesahan automatik."
+            "Ditemui " + sources.size + " sumber untuk " + name + ". Evidence akan disemak silang oleh verifier."
         }
         ResearchResult(query, name, summary, sources)
     }
@@ -53,7 +58,7 @@ object ResearchCore {
         connection.requestMethod = "GET"
         connection.connectTimeout = 8000
         connection.readTimeout = 8000
-        connection.setRequestProperty("User-Agent", "AI-FUSION/4.1 Android")
+        connection.setRequestProperty("User-Agent", "AI-FUSION/4.4 Android")
 
         return try {
             val html = connection.inputStream.bufferedReader().use { it.readText() }
