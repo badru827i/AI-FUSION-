@@ -840,7 +840,9 @@ private fun AiFusionApp() {
                     modifier = Modifier.padding(padding),
                     models = models,
                     modelTier = capabilities.modelTier,
+                    testStatus = modelTestStatus,
                     onImport = { modelPickerLauncher.launch(arrayOf("*/*")) },
+                    onTest = { testModel(it) },
                     onDelete = {
                         modelStore.remove(it)
                         models = modelStore.list()
