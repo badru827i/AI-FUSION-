@@ -1050,6 +1050,7 @@ private fun AiFusionApp() {
                 )
             }
         }
+    )
     }
 }
 @Composable
