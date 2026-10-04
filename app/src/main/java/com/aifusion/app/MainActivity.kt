@@ -199,7 +199,7 @@ private fun AiFusionApp() {
     var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
     var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
     val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
-    val buildClientId = BuildConfig.GOOGLE_CLIENT_ID.trim()
+    val buildClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
     val storedClientId = googlePrefs.getString("client_id", "").orEmpty().trim()
     val effectiveClientId = storedClientId.ifBlank { buildClientId }
     var clientId by rememberSaveable { mutableStateOf(effectiveClientId) }
@@ -908,6 +908,7 @@ private fun AiFusionApp() {
                                         .setServerClientId(id)
                                         .setFilterByAuthorizedAccounts(false)
                                         .setAutoSelectEnabled(true)
+                                        .setNonce(java.util.UUID.randomUUID().toString())
                                         .build()
 
                                     val request = GetCredentialRequest.Builder()
@@ -1642,7 +1643,7 @@ private fun SettingsScreen(
             )
         ) {
             Column(Modifier.padding(18.dp)) {
-                Text("Google OAuth Client ID", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Google Web OAuth Client ID", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
                     value = clientId,
@@ -1654,7 +1655,7 @@ private fun SettingsScreen(
                     } else {
                         PasswordVisualTransformation()
                     },
-                    label = { Text("Client ID") },
+                    label = { Text("Web Client ID") },
                     placeholder = { Text("xxxx.apps.googleusercontent.com") },
                     trailingIcon = {
                         TextButton(onClick = onShowClientId) {
