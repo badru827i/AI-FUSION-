@@ -653,12 +653,12 @@ private fun AiFusionApp() {
     suspend fun signInGoogle() {
         signingIn = true
         status = "Signing in…"
-        val id = buildClientId
-        if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) {
-            status = "Google Sign-In belum dikonfigurasi"
-            return
-        }
         try {
+            val id = buildClientId
+            if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) {
+                status = "Google Sign-In belum dikonfigurasi"
+                return
+            }
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setServerClientId(id)
                 .setFilterByAuthorizedAccounts(false)
