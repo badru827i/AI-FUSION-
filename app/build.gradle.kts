@@ -18,8 +18,8 @@ android {
         // OAuth client IDs are not secrets; never put client secrets/private keys in the APK.
         buildConfigField(
             "String",
-            "GOOGLE_CLIENT_ID",
-            "\"${System.getenv("GOOGLE_CLIENT_ID") ?: ""}\""
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${System.getenv("GOOGLE_WEB_CLIENT_ID") ?: System.getenv("GOOGLE_CLIENT_ID") ?: ""}\""
         )
     }
 
