@@ -5,7 +5,9 @@ plugins {
 
 android {
     namespace = "com.aifusion.app"
-    compileSdk = 36
+    // Compose and AndroidX dependencies in the 2026.08 BOM require API 37 to compile.
+    // Keep targetSdk at 36 to avoid opting into newer runtime behavior.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aifusion.app"
