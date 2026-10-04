@@ -290,8 +290,8 @@ private fun AiFusionApp() {
                 val file = FusionToolRouter.build3D(context, clean)
                 context.startActivity(
                     Intent(context, Fusion3DActivity::class.java).putExtra(
-                        Fusion3DActivity.EXTRA_MODEL_URI,
-                        android.net.Uri.fromFile(file).toString()
+                        Fusion3DActivity.EXTRA_MODEL_PATH,
+                        file.absolutePath
                     )
                 )
                 status = "3D Tool • model siap • OBJ • local"
