@@ -202,6 +202,7 @@ private fun AiFusionApp() {
     // It is intentionally not editable or displayed in the app UI.
     val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
     val buildClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
+    var signingIn by remember { mutableStateOf(false) }
     var account by remember {
         mutableStateOf(
             googlePrefs.getString("email", null)?.let { email ->
@@ -650,6 +651,8 @@ private fun AiFusionApp() {
 
 
     suspend fun signInGoogle() {
+        signingIn = true
+        status = "Signing in…"
         val id = buildClientId
         if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) {
             status = "Google Sign-In belum dikonfigurasi"
@@ -711,13 +714,15 @@ private fun AiFusionApp() {
             } else {
                 "Sign-in error: $message"
             }
+        } finally {
+            signingIn = false
         }
     }
 
     if (account == null) {
         LoginScreen(
             status = status,
-            signingIn = status.startsWith("Signing in", ignoreCase = true),
+            signingIn = signingIn,
             onSignIn = { scope.launch { signInGoogle() } }
         )
     } else {
@@ -1036,10 +1041,7 @@ private fun AiFusionApp() {
                     }
                 )
             }
-            }
         }
-    }
-
     }
 
 
