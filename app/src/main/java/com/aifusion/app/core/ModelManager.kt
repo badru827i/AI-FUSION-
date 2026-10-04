@@ -54,8 +54,8 @@ class ModelManager(context: Context) {
         val info = ModelFormatDetector.detect(Uri.parse(model.uri), model.name)
         return when (info.format) {
             AiModelFormat.GGUF -> "READY • GGUF / llama.cpp"
-            AiModelFormat.ONNX -> "IMPORTED • ONNX runtime adapter not bundled"
-            AiModelFormat.TFLITE -> "IMPORTED • LiteRT runtime adapter not bundled"
+            AiModelFormat.ONNX -> "READY • ONNX Runtime Android + NNAPI fallback"
+            AiModelFormat.TFLITE -> "READY • LiteRT Interpreter + NNAPI/XNNPACK fallback"
             AiModelFormat.EXECUTORCH -> "IMPORTED • ExecuTorch runtime adapter not bundled"
             AiModelFormat.GGML -> "IMPORTED • convert to GGUF first"
             else -> "IMPORTED • " + info.runtime
