@@ -268,6 +268,28 @@ fun ResearchScreen(
             }
             Text(status, style = MaterialTheme.typography.bodySmall)
 
+            results.firstOrNull()?.verification?.let { report ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
+                    )
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text("Automatic Fact Verification", style = MaterialTheme.typography.titleSmall)
+                        Spacer(Modifier.height(4.dp))
+                        Text(report.verdict + " • " + report.score + "/100")
+                        Text(
+                            "${report.uniqueSources} unique sources • ${report.uniqueDomains} domains • ${report.overlapSources} repeated-source matches",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(report.explanation, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
             val urlCounts = results
                 .flatMap { it.sources }
                 .groupingBy { it.url }
@@ -323,6 +345,7 @@ fun ModelManagerScreen(
     models: List<LocalModel>,
     modelTier: String,
     onImport: () -> Unit,
+    onTest: (LocalModel) -> Unit,
     onDelete: (String) -> Unit
 ) {
     Column(modifier.fillMaxSize()) {
@@ -375,8 +398,15 @@ fun ModelManagerScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            TextButton(onClick = { onDelete(model.uri) }) {
-                                Text("Remove")
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (model.format.equals("ONNX", true) || model.format.equals("TFLITE", true)) {
+                                    TextButton(onClick = { onTest(model) }) {
+                                        Text("Test")
+                                    }
+                                }
+                                TextButton(onClick = { onDelete(model.uri) }) {
+                                    Text("Remove")
+                                }
                             }
                         }
                     }
