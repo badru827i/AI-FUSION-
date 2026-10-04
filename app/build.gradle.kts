@@ -5,16 +5,14 @@ plugins {
 
 android {
     namespace = "com.aifusion.app"
-    // Compose and AndroidX dependencies in the 2026.08 BOM require API 37 to compile.
-    // Keep targetSdk at 36 to avoid opting into newer runtime behavior.
     compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aifusion.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "4.3.0"
+        versionCode = 4
+        versionName = "4.4.0"
     }
 
     buildTypes {
@@ -61,10 +59,13 @@ dependencies {
     implementation("androidx.credentials:credentials:1.6.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
-    // Real on-device GGUF LLM inference (CPU/NEON, arm64-v8a, API 24+).
+
+    // Local AI runtimes.
     implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
-    // On-device OCR for imported images/screenshots (English model bundled).
     implementation("dev.ffmpegkit-maintained:tesseract-android:5.5.0")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.30.0")
+    implementation("com.google.ai.edge.litert:litert:1.4.1")
+    implementation("com.google.ai.edge.litert:litert-gpu:1.4.1")
 
     implementation(project(":engine"))
 }
