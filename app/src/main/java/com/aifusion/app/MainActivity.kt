@@ -968,6 +968,7 @@ private fun AiFusionApp() {
                         aiApiKey = ""
                     },
                     account = account,
+                    googleConfigured = buildClientId.isNotBlank() && buildClientId.contains(".apps.googleusercontent.com"),
                     resourceStatus = resourceStatus,
                     onClearCache = {
                         ResourceManager.clearTemporaryCache(context)
@@ -1050,8 +1051,6 @@ private fun AiFusionApp() {
             }
         }
     }
-}
-}
 }
 @Composable
 private fun LoginScreen(
@@ -1615,6 +1614,7 @@ private fun SettingsScreen(
     onSaveAiSettings: () -> Unit,
     onClearAiKey: () -> Unit,
     account: GoogleAccountUi?,
+    googleConfigured: Boolean,
     resourceStatus: ResourceStatus,
     onClearCache: () -> Unit,
     onSignIn: () -> Unit,
@@ -1696,7 +1696,7 @@ private fun SettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 Button(
                     onClick = onSignIn,
-                    enabled = buildClientId.contains(".apps.googleusercontent.com")
+                    enabled = googleConfigured
                 ) {
                     Text(if (account == null) "Continue with Google" else "Reconnect Google")
                 }
