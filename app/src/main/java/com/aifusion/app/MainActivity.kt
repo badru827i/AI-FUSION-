@@ -264,6 +264,24 @@ private fun AiFusionApp() {
         screen = AppScreen.CHAT
     }
 
+    fun openGeneratedFile(result: com.aifusion.app.core.MediaGenerationResult) {
+        runCatching {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "com.aifusion.app.fileprovider",
+                result.file
+            )
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, result.mimeType)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            )
+        }.onFailure {
+            mediaStatus = "Fail buka " + result.type + ": " + (it.message ?: "tiada aplikasi viewer")
+        }
+    }
+
     suspend fun sendMessage(text: String) {
         val clean = text.trim()
         if (clean.isBlank() || generating) return
@@ -434,24 +452,6 @@ private fun AiFusionApp() {
             else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
-    }
-
-    fun openGeneratedFile(result: com.aifusion.app.core.MediaGenerationResult) {
-        runCatching {
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                context,
-                "com.aifusion.app.fileprovider",
-                result.file
-            )
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, result.mimeType)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-            )
-        }.onFailure {
-            mediaStatus = "Fail buka ${result.type}: ${it.message ?: "tiada aplikasi viewer"}"
-        }
     }
 
     fun generateLocalImage() {
