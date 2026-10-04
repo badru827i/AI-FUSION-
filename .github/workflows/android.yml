@@ -32,6 +32,8 @@ jobs:
           gradle-version: '9.6.0'
 
       - name: Build debug APK
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || '450858772274-36g06kdg6vuinfss9s28vhrfbk4vgkcn.apps.googleusercontent.com' }}
         run: gradle --no-daemon :app:assembleDebug
 
       - name: Print debug signing SHA-1
