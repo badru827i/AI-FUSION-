@@ -22,6 +22,9 @@ object Local3DBuilder {
             )
             "cylinder" in clean || "silinder" in clean -> cylinder()
             "robot" in clean || "android" in clean -> robot()
+            "robot arm" in clean || "lengan robot" in clean -> robotArm()
+            "drone" in clean || "quadcopter" in clean -> drone()
+            "bridge" in clean || "jambatan" in clean || "struktur" in clean || "engineering" in clean || "kejuruteraan" in clean || "cad" in clean -> engineeringRig()
             "car" in clean || "kereta" in clean || "automotif" in clean -> carBody()
             "plane" in clean || "lantai" in clean || "flat" in clean -> Triple(
                 "Plane",
@@ -97,6 +100,74 @@ object Local3DBuilder {
         box(-0.95f, -0.15f, 0f, 0.18f, 0.75f, 0.18f)
         box(0.95f, -0.15f, 0f, 0.18f, 0.75f, 0.18f)
         return Triple("Robot", vertices, faces)
+    }
+
+    private fun engineeringRig(): Triple<String, List<Triple<Float, Float, Float>>, List<IntArray>> {
+        val vertices = mutableListOf<Triple<Float, Float, Float>>()
+        val faces = mutableListOf<IntArray>()
+        fun box(cx: Float, cy: Float, cz: Float, sx: Float, sy: Float, sz: Float) {
+            val start = vertices.size + 1
+            vertices += listOf(
+                Triple(cx-sx,cy-sy,cz-sz), Triple(cx+sx,cy-sy,cz-sz),
+                Triple(cx+sx,cy+sy,cz-sz), Triple(cx-sx,cy+sy,cz-sz),
+                Triple(cx-sx,cy-sy,cz+sz), Triple(cx+sx,cy-sy,cz+sz),
+                Triple(cx+sx,cy+sy,cz+sz), Triple(cx-sx,cy+sy,cz+sz)
+            )
+            faces += boxFaces(start)
+        }
+        box(0f, 0f, 0f, 3.0f, 0.25f, 1.8f)
+        box(0f, 0.65f, 0f, 2.4f, 0.12f, 1.2f)
+        for (x in listOf(-2.5f, 2.5f)) {
+            box(x, 1.0f, -1.35f, 0.16f, 0.75f, 0.16f)
+            box(x, 1.0f, 1.35f, 0.16f, 0.75f, 0.16f)
+        }
+        box(0f, 1.15f, 0f, 0.18f, 1.2f, 0.18f)
+        box(0f, 2.35f, 0f, 1.1f, 0.14f, 1.1f)
+        box(-2.0f, 1.0f, 0f, 0.85f, 0.45f, 0.45f)
+        box(2.0f, 1.0f, 0f, 0.85f, 0.45f, 0.45f)
+        return Triple("Engineering Rig", vertices, faces)
+    }
+
+    private fun robotArm(): Triple<String, List<Triple<Float, Float, Float>>, List<IntArray>> {
+        val vertices = mutableListOf<Triple<Float, Float, Float>>()
+        val faces = mutableListOf<IntArray>()
+        fun box(cx: Float, cy: Float, cz: Float, sx: Float, sy: Float, sz: Float) {
+            val start = vertices.size + 1
+            vertices += listOf(
+                Triple(cx-sx,cy-sy,cz-sz), Triple(cx+sx,cy-sy,cz-sz),
+                Triple(cx+sx,cy+sy,cz-sz), Triple(cx-sx,cy+sy,cz-sz),
+                Triple(cx-sx,cy-sy,cz+sz), Triple(cx+sx,cy-sy,cz+sz),
+                Triple(cx+sx,cy+sy,cz+sz), Triple(cx-sx,cy+sy,cz+sz)
+            )
+            faces += boxFaces(start)
+        }
+        box(0f, 0.2f, 0f, 1.2f, 0.2f, 0.9f)
+        box(0f, 1.0f, 0f, 0.35f, 0.7f, 0.35f)
+        box(0.8f, 2.0f, 0f, 0.9f, 0.22f, 0.22f)
+        box(1.7f, 2.6f, 0f, 0.22f, 0.7f, 0.22f)
+        box(1.7f, 3.35f, 0f, 0.42f, 0.18f, 0.32f)
+        return Triple("Robot Arm", vertices, faces)
+    }
+
+    private fun drone(): Triple<String, List<Triple<Float, Float, Float>>, List<IntArray>> {
+        val vertices = mutableListOf<Triple<Float, Float, Float>>()
+        val faces = mutableListOf<IntArray>()
+        fun box(cx: Float, cy: Float, cz: Float, sx: Float, sy: Float, sz: Float) {
+            val start = vertices.size + 1
+            vertices += listOf(
+                Triple(cx-sx,cy-sy,cz-sz), Triple(cx+sx,cy-sy,cz-sz),
+                Triple(cx+sx,cy+sy,cz-sz), Triple(cx-sx,cy+sy,cz-sz),
+                Triple(cx-sx,cy-sy,cz+sz), Triple(cx+sx,cy-sy,cz+sz),
+                Triple(cx+sx,cy+sy,cz+sz), Triple(cx-sx,cy+sy,cz+sz)
+            )
+            faces += boxFaces(start)
+        }
+        box(0f, 0f, 0f, 1.0f, 0.18f, 0.65f)
+        box(-2.1f, 0f, 0f, 0.65f, 0.12f, 0.12f)
+        box(2.1f, 0f, 0f, 0.65f, 0.12f, 0.12f)
+        box(0f, 0f, -1.6f, 0.12f, 0.12f, 0.65f)
+        box(0f, 0f, 1.6f, 0.12f, 0.12f, 0.65f)
+        return Triple("Drone", vertices, faces)
     }
 
     private fun carBody(): Triple<String, List<Triple<Float, Float, Float>>, List<IntArray>> {
