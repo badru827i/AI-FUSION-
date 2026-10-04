@@ -199,8 +199,11 @@ private fun AiFusionApp() {
     var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
     var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
     val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
-    var clientId by rememberSaveable { mutableStateOf(googlePrefs.getString("client_id", "").orEmpty()) }
-    var savedClientId by rememberSaveable { mutableStateOf(googlePrefs.getString("client_id", "").orEmpty()) }
+    val buildClientId = BuildConfig.GOOGLE_CLIENT_ID.trim()
+    val storedClientId = googlePrefs.getString("client_id", "").orEmpty().trim()
+    val effectiveClientId = storedClientId.ifBlank { buildClientId }
+    var clientId by rememberSaveable { mutableStateOf(effectiveClientId) }
+    var savedClientId by rememberSaveable { mutableStateOf(effectiveClientId) }
     var account by remember {
         mutableStateOf(
             googlePrefs.getString("email", null)?.let { email ->
