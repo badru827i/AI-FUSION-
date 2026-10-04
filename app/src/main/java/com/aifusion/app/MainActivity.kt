@@ -156,6 +156,7 @@ private fun AiFusionApp() {
 
     var models by remember { mutableStateOf(modelStore.list()) }
     var resourceStatus by remember { mutableStateOf(ResourceManager.status(context)) }
+    var modelTestStatus by rememberSaveable { mutableStateOf("") }
 
     var screen by rememberSaveable { mutableStateOf(AppScreen.CHAT) }
     var sessionId by rememberSaveable {
@@ -392,6 +393,46 @@ private fun AiFusionApp() {
             else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
+    }
+
+    fun testModel(model: com.aifusion.app.core.LocalModel) {
+        scope.launch {
+            modelTestStatus = "Testing ${model.name}…"
+            val uri = android.net.Uri.parse(model.uri)
+            when {
+                model.format.equals("ONNX", true) -> {
+                    val result = runCatching {
+                        com.aifusion.app.core.OnnxInferenceEngine.smokeTest(
+                            context = context,
+                            uri = uri,
+                            modelName = model.name,
+                            capabilities = capabilities
+                        )
+                    }.getOrNull()
+                    modelTestStatus = if (result != null) {
+                        "ONNX OK • ${result.accelerator} • input ${result.inputShape.contentToString()} • outputs ${result.outputCount}"
+                    } else {
+                        "ONNX test failed or model input is unsupported for generic smoke inference."
+                    }
+                }
+                model.format.equals("TFLITE", true) -> {
+                    val result = runCatching {
+                        com.aifusion.app.core.LiteRtInferenceEngine.smokeTest(
+                            context = context,
+                            uri = uri,
+                            modelName = model.name,
+                            capabilities = capabilities
+                        )
+                    }.getOrNull()
+                    modelTestStatus = if (result != null) {
+                        "TFLite/LiteRT OK • ${result.accelerator} • input ${result.inputShape.contentToString()} • outputs ${result.outputCount}"
+                    } else {
+                        "TFLite/LiteRT test failed or model input is unsupported for generic smoke inference."
+                    }
+                }
+                else -> modelTestStatus = "This model format has no direct smoke runner."
+            }
+        }
     }
 
     val voiceLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
