@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.aifusion.app"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 3
         versionName = "4.3.0"
     }
