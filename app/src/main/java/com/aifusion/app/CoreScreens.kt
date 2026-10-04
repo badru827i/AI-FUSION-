@@ -212,7 +212,7 @@ fun ResearchScreen(
             status = "Research error: " + (error.message ?: "unknown")
         }
         if (results.isNotEmpty()) {
-            status = "Agents finished. Results are source previews, not guaranteed fact verification."
+            status = "Agents finished. Automatic verification is evidence-based scoring, not mathematical proof."
         } else if (status.startsWith("Running")) {
             status = "No sources returned."
         }
@@ -233,7 +233,7 @@ fun ResearchScreen(
         ) {
             Text("Research Core", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "3 agents work in parallel: discovery, verification search and current-change search.",
+                "4 agents work in parallel: discovery, verification, current-change and primary-source search.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             OutlinedTextField(
