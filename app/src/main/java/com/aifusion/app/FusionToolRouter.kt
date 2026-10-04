@@ -10,7 +10,7 @@ import java.io.File
  */
 object FusionToolRouter {
     enum class Tool {
-        CHAT, RESEARCH, THREE_D, VISION_OCR, FILES, COMPRESSION, DEVICE, MODELS
+        CHAT, RESEARCH, THREE_D, IMAGE_CREATE, VIDEO_CREATE, VISION_OCR, FILES, COMPRESSION, DEVICE, MODELS
     }
 
     fun detectTool(prompt: String): Tool {
@@ -20,6 +20,10 @@ object FusionToolRouter {
                 .any { q.contains(it) } -> Tool.THREE_D
             listOf("research", "kajian", "cari sumber", "semak sumber", "fact check")
                 .any { q.contains(it) } -> Tool.RESEARCH
+            listOf("buat gambar", "hasilkan gambar", "generate image", "create image", "lukis gambar", "image generation")
+                .any { q.contains(it) } -> Tool.IMAGE_CREATE
+            listOf("buat video", "hasilkan video", "generate video", "create video", "video generation")
+                .any { q.contains(it) } -> Tool.VIDEO_CREATE
             listOf("ocr", "baca gambar", "analisis gambar", "vision")
                 .any { q.contains(it) } -> Tool.VISION_OCR
             listOf("compress", "compression", "mampat", "zip")
