@@ -33,7 +33,7 @@ jobs:
 
       - name: Build debug APK
         env:
-          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID || secrets.GOOGLE_CLIENT_ID || '450858772274-36g06kdg6vuinfss9s28vhrfbk4vgkcn.apps.googleusercontent.com' }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
         run: gradle --no-daemon :app:assembleDebug
 
       - name: Print debug signing SHA-1
@@ -42,7 +42,8 @@ jobs:
           echo "Google OAuth Android client package: com.aifusion.app"
           echo "IMPORTANT: register this DEBUG SHA-1 in Google Cloud Console for the Android OAuth client."
           echo "The Credential Manager serverClientId must be a WEB application OAuth client ID."
-          echo "The APK does not contain a client secret; OAuth client IDs are public."
+          echo "The Web OAuth client ID is injected from the GitHub Actions secret at build time."
+          echo "No Google OAuth client secret is included in the APK."
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
