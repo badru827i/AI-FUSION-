@@ -1,1 +1,4 @@
-# AI-FUSION baseline. Add app-specific R8 rules only when required.
+# AI-FUSION runtime keep rules
+-keep class ai.onnxruntime.** { *; }
+-keep class org.tensorflow.lite.** { *; }
+-keep class com.aifusion.app.core.** { *; }
