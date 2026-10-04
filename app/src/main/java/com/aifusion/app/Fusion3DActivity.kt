@@ -27,6 +27,7 @@ class Fusion3DActivity : ComponentActivity(), ContentUtils.ContentResolver {
 
     companion object {
         const val EXTRA_MODEL_URI = "ai_fusion_model_uri"
+        const val EXTRA_MODEL_PATH = "ai_fusion_model_path"
     }
 
     private lateinit var surface: GLSurfaceView
