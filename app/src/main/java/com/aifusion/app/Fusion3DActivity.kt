@@ -93,7 +93,7 @@ class Fusion3DActivity : ComponentActivity(), ContentUtils.ContentResolver {
             finish()
         }
 
-        val generatedUri = intent.getStringExtra(EXTRA_MODEL_URI)
+        val generatedUri = intent.getStringExtra(EXTRA_MODEL_URI) ?: intent.getStringExtra(EXTRA_MODEL_PATH)?.let { Uri.fromFile(File(it)).toString() }
         if (!generatedUri.isNullOrBlank()) {
             runCatching {
                 val uri = Uri.parse(generatedUri)
