@@ -1117,7 +1117,6 @@ private fun AiFusionApp() {
             }
         }
     }
-    }
 }
 @Composable
 private fun LoginScreen(
