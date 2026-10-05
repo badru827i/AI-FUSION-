@@ -1,5 +1,6 @@
 name: AI-FUSION Android
 
+# CI verification trigger for Google Sign-In fix
 on:
   push:
     branches: [ main ]
