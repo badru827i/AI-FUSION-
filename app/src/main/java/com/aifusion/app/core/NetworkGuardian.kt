@@ -1,7 +1,7 @@
 package com.aifusion.app.core
 
 import android.content.Context
-import androidx.annotation.SuppressLint
+import android.annotation.SuppressLint
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
