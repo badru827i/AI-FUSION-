@@ -657,16 +657,18 @@ private fun AiFusionApp() {
 
     suspend fun signInGoogle() {
         signingIn = true
-        status = "Signing in…"
+        status = "Opening Google Sign-In…"
+
         try {
-            val activityContext = context as? Activity
+            val activity = context as? Activity
                 ?: error("Google Sign-In memerlukan Activity context")
-            val id = buildClientId
-            if (id.isBlank() || !id.contains(".apps.googleusercontent.com")) {
-                status = "Google Sign-In belum dikonfigurasi"
-                return
+
+            val clientId = buildClientId
+            require(clientId.endsWith(".apps.googleusercontent.com")) {
+                "Google Client ID tidak sah atau belum dimasukkan melalui GitHub Actions"
             }
-            fun secureNonce(): String {
+
+            fun createNonce(): String {
                 val bytes = ByteArray(32)
                 SecureRandom().nextBytes(bytes)
                 return Base64.encodeToString(
@@ -675,82 +677,87 @@ private fun AiFusionApp() {
                 )
             }
 
-            val credentialManager = CredentialManager.create(activityContext)
-            val mutableContext = MutableContextWrapper(activityContext)
+            val credentialManager = CredentialManager.create(activity)
 
-            // First try the normal Credential Manager sheet. If the device has
-            // no credential for this app yet, use Google's explicit button
-            // flow so a fresh account can still be selected/added.
+            // Use the Activity directly. MutableContextWrapper can make the
+            // Credential Manager UI lose the foreground Activity on some phones.
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setServerClientId(clientId)
+                .setFilterByAuthorizedAccounts(false)
+                .setAutoSelectEnabled(false)
+                .setNonce(createNonce())
+                .build()
+
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+
             val credential = try {
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setServerClientId(id)
-                    .setFilterByAuthorizedAccounts(false)
-                    .setAutoSelectEnabled(true)
-                    .setNonce(secureNonce())
-                    .build()
-
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-
                 credentialManager.getCredential(
                     request = request,
-                    context = mutableContext
+                    context = activity
                 ).credential
             } catch (_: NoCredentialException) {
-                val signInOption = GetSignInWithGoogleOption.Builder(id)
-                    .setNonce(secureNonce())
-                    .build()
-
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(signInOption)
+                // Fresh devices/accounts may not have a saved credential.
+                val signInOption = GetSignInWithGoogleOption.Builder(clientId)
+                    .setNonce(createNonce())
                     .build()
 
                 credentialManager.getCredential(
-                    request = request,
-                    context = mutableContext
+                    GetCredentialRequest.Builder()
+                        .addCredentialOption(signInOption)
+                        .build(),
+                    activity
                 ).credential
             }
 
             if (
-                credential is CustomCredential &&
-                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                credential !is CustomCredential ||
+                credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
             ) {
-                val googleCredential = try {
-                    GoogleIdTokenCredential.createFrom(credential.data)
-                } catch (_: GoogleIdTokenParsingException) {
-                    null
-                }
-
-                googleCredential?.let {
-                    val email = it.email.orEmpty().trim()
-                    val idToken = it.idToken.orEmpty().trim()
-                    if (idToken.isBlank()) error("Google tidak memulangkan ID token")
-                    if (email.isBlank()) error("Google tidak memulangkan email akaun")
-                    val displayName = it.displayName.orEmpty().trim().ifBlank {
-                        email.substringBefore("@").ifBlank { "Google user" }
-                    }
-                    val uniqueId = it.uniqueId.orEmpty().trim()
-                    googlePrefs.edit()
-                        .putString("display_name", displayName)
-                        .putString("email", email)
-                        .putString("unique_id", uniqueId)
-                        .apply()
-                    account = GoogleAccountUi(displayName = displayName, email = email)
-                    status = "Signed in • Google account active (local)"
-                } ?: error("Google credential tidak dapat dibaca")
-            } else {
-                error("Credential Google tidak diterima")
+                error("Google tidak memulangkan credential ID token yang sah")
             }
+
+            val googleCredential = try {
+                GoogleIdTokenCredential.createFrom(credential.data)
+            } catch (e: GoogleIdTokenParsingException) {
+                error("ID token Google tidak dapat dibaca")
+            }
+
+            val email = googleCredential.email.orEmpty().trim()
+            val idToken = googleCredential.idToken.orEmpty().trim()
+            require(idToken.isNotBlank()) { "Google tidak memulangkan ID token" }
+            require(email.isNotBlank()) { "Google tidak memulangkan email akaun" }
+
+            val displayName = googleCredential.displayName.orEmpty().trim().ifBlank {
+                email.substringBefore("@").ifBlank { "Google user" }
+            }
+            val uniqueId = googleCredential.uniqueId.orEmpty().trim()
+
+            googlePrefs.edit()
+                .putString("display_name", displayName)
+                .putString("email", email)
+                .putString("unique_id", uniqueId)
+                .apply()
+
+            account = GoogleAccountUi(
+                displayName = displayName,
+                email = email
+            )
+            status = "Google account connected"
         } catch (error: Exception) {
             val message = error.message
                 ?.replace("\\n", " ")
-                ?.take(180)
+                ?.replace("\\r", " ")
+                ?.trim()
+                ?.take(220)
                 .orEmpty()
-            status = if (message.isBlank()) {
-                "Google Sign-In dibatalkan/gagal"
-            } else {
-                "Sign-in error: $message"
+
+            status = when {
+                message.contains("canceled", true) ||
+                message.contains("cancelled", true) -> "Google Sign-In dibatalkan"
+                message.isBlank() -> "Google Sign-In gagal — cuba lagi"
+                else -> "Google Sign-In error: $message"
             }
         } finally {
             signingIn = false
