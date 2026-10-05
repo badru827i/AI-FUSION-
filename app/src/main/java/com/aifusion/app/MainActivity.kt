@@ -96,6 +96,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.NoCredentialException
+import androidx.credentials.exceptions.GetCredentialException
 import com.aifusion.app.core.ChatMessage
 import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
@@ -697,7 +698,20 @@ private fun AiFusionApp() {
                     context = activity
                 ).credential
             } catch (_: NoCredentialException) {
-                // Fresh devices/accounts may not have a saved credential.
+                // No authorized credential: use the explicit Sign in with Google flow.
+                val signInOption = GetSignInWithGoogleOption.Builder(clientId)
+                    .setNonce(createNonce())
+                    .build()
+
+                credentialManager.getCredential(
+                    context = activity,
+                    request = GetCredentialRequest.Builder()
+                        .addCredentialOption(signInOption)
+                        .build()
+                ).credential
+            } catch (_: GetCredentialException) {
+                // Some accounts are shown in the picker but require re-authentication.
+                // Retry through the explicit Google button flow.
                 val signInOption = GetSignInWithGoogleOption.Builder(clientId)
                     .setNonce(createNonce())
                     .build()
@@ -757,6 +771,9 @@ private fun AiFusionApp() {
                      message.contains("developer", true) ||
                      message.contains("status code", true)) ->
                     "Google OAuth error (10) • semak package + SHA-1"
+                message.contains("16") &&
+                    message.contains("reauth", true) ->
+                    "Google Sign-In perlu pengesahan semula • cuba lagi"
                 message.contains("12501") ||
                     message.contains("canceled", true) ||
                     message.contains("cancelled", true) ->
