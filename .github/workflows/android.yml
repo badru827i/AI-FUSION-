@@ -35,7 +35,8 @@ jobs:
       - name: Build debug APK
         env:
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
-        run: gradle --no-daemon --refresh-dependencies --stacktrace --warning-mode all :app:assembleDebug
+        run: |
+          gradle --no-daemon --refresh-dependencies --stacktrace --warning-mode all :app:assembleDebug
           gradle --no-daemon :app:lintDebug
 
       - name: Print debug signing SHA-1
