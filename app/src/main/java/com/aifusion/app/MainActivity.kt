@@ -96,6 +96,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.NoCredentialException
 import com.aifusion.app.core.ChatMessage
 import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
@@ -118,11 +119,14 @@ import com.aifusion.app.core.PerformanceMode
 import com.aifusion.app.core.detectLanguage
 import com.aifusion.app.core.localResponse
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.security.SecureRandom
+import android.util.Base64
 import java.util.Locale
 
 private enum class AppScreen {
@@ -662,24 +666,51 @@ private fun AiFusionApp() {
                 status = "Google Sign-In belum dikonfigurasi"
                 return
             }
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setServerClientId(id)
-                .setFilterByAuthorizedAccounts(false)
-                .setAutoSelectEnabled(true)
-                .setNonce(java.util.UUID.randomUUID().toString())
-                .build()
-
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
+            fun secureNonce(): String {
+                val bytes = ByteArray(32)
+                SecureRandom().nextBytes(bytes)
+                return Base64.encodeToString(
+                    bytes,
+                    Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING
+                )
+            }
 
             val credentialManager = CredentialManager.create(activityContext)
             val mutableContext = MutableContextWrapper(activityContext)
-            val result = credentialManager.getCredential(
-                request = request,
-                context = mutableContext
-            )
-            val credential = result.credential
+
+            // First try the normal Credential Manager sheet. If the device has
+            // no credential for this app yet, use Google's explicit button
+            // flow so a fresh account can still be selected/added.
+            val credential = try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setServerClientId(id)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(true)
+                    .setNonce(secureNonce())
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                credentialManager.getCredential(
+                    request = request,
+                    context = mutableContext
+                ).credential
+            } catch (_: NoCredentialException) {
+                val signInOption = GetSignInWithGoogleOption.Builder(id)
+                    .setNonce(secureNonce())
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(signInOption)
+                    .build()
+
+                credentialManager.getCredential(
+                    request = request,
+                    context = mutableContext
+                ).credential
+            }
 
             if (
                 credential is CustomCredential &&
