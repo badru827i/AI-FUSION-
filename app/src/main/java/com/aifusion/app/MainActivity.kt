@@ -1060,7 +1060,7 @@ private fun AiFusionApp() {
                                                 models = modelStore.list()
                                                 screen = AppScreen.MODEL_MANAGER
                                             }
-                                            "device_info", "battery", "network", "hardware_scheduler", "ram_manager" -> {
+                                            "device_info", "battery", "network", "hardware_scheduler" -> {
                                                 capabilities = DeviceOptimizer.detect(context)
                                                 screen = AppScreen.DEVICE
                                             }
