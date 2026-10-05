@@ -1,36 +1,64 @@
 package com.aifusion.app
 
 import android.content.Context
+import com.aifusion.app.core.FusionToolRegistry
+import com.aifusion.app.core.FusionToolSpec
 import java.io.File
 
 /**
  * Central routing point between Chat Core and local AI-FUSION tools.
- * Tools stay modular so the assistant can call them without moving chat
- * history or user data to a server.
+ *
+ * The registry owns tool knowledge; this class keeps compatibility with the
+ * existing Chat Core while exposing richer routing information.
  */
 object FusionToolRouter {
     enum class Tool {
-        CHAT, RESEARCH, THREE_D, IMAGE_CREATE, VIDEO_CREATE, VISION_OCR, FILES, COMPRESSION, DEVICE, MODELS
+        CHAT,
+        RESEARCH,
+        THREE_D,
+        IMAGE_CREATE,
+        VIDEO_CREATE,
+        VISION_OCR,
+        FILES,
+        COMPRESSION,
+        DEVICE,
+        MODELS,
+        CODE,
+        VOICE,
+        ANDROID,
+        WEB_SEARCH,
+        FACT_CHECK,
+        MULTI_AGENT
     }
 
     fun detectTool(prompt: String): Tool {
-        val q = prompt.lowercase()
-        return when {
-            listOf("3d", "model 3d", "obj", "fbx", "bina model", "buat model", "reka bentuk 3d", "design 3d")
-                .any { q.contains(it) } -> Tool.THREE_D
-            listOf("research", "kajian", "cari sumber", "semak sumber", "fact check")
-                .any { q.contains(it) } -> Tool.RESEARCH
-            listOf("buat gambar", "hasilkan gambar", "generate image", "create image", "lukis gambar", "image generation")
-                .any { q.contains(it) } -> Tool.IMAGE_CREATE
-            listOf("buat video", "hasilkan video", "generate video", "create video", "video generation")
-                .any { q.contains(it) } -> Tool.VIDEO_CREATE
-            listOf("ocr", "baca gambar", "analisis gambar", "vision")
-                .any { q.contains(it) } -> Tool.VISION_OCR
-            listOf("compress", "compression", "mampat", "zip")
-                .any { q.contains(it) } -> Tool.COMPRESSION
+        val spec = FusionToolRegistry.match(prompt) ?: return Tool.CHAT
+        return when (spec.id) {
+            "deep_research", "research_monitor", "site_reader", "source_compare" -> Tool.RESEARCH
+            "fact_check" -> Tool.FACT_CHECK
+            "multi_agent" -> Tool.MULTI_AGENT
+            "three_d", "three_d_scene" -> Tool.THREE_D
+            "image_create", "image_edit", "image_upscale" -> Tool.IMAGE_CREATE
+            "video_create", "video_analyze" -> Tool.VIDEO_CREATE
+            "vision", "ocr" -> Tool.VISION_OCR
+            "files", "pdf", "documents", "data" -> Tool.FILES
+            "file_compression", "context_compressor", "ram_manager" -> Tool.COMPRESSION
+            "device_info", "battery", "network", "hardware_scheduler" -> Tool.DEVICE
+            "model_manager", "quantization", "benchmark", "inference_profiler", "local_ai", "model_router" -> Tool.MODELS
+            "code", "json_api", "project_analysis", "build_analysis" -> Tool.CODE
+            "voice_input", "voice_output" -> Tool.VOICE
+            "app_launcher", "android_intent", "accessibility", "notifications", "clipboard" -> Tool.ANDROID
+            "web_search" -> Tool.WEB_SEARCH
             else -> Tool.CHAT
         }
     }
+
+    fun matchSpec(prompt: String): FusionToolSpec? = FusionToolRegistry.match(prompt)
+
+    fun relatedTools(prompt: String, limit: Int = 4): List<FusionToolSpec> =
+        FusionToolRegistry.related(prompt, limit)
+
+    fun allTools(): List<FusionToolSpec> = FusionToolRegistry.all
 
     fun build3D(context: Context, prompt: String): File {
         return Local3DBuilder.build(
