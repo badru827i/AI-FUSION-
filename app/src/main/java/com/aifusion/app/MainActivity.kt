@@ -4,7 +4,6 @@ import android.Manifest
 import android.graphics.BitmapFactory
 import android.app.Activity
 import android.content.Intent
-import android.content.MutableContextWrapper
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -704,10 +703,10 @@ private fun AiFusionApp() {
                     .build()
 
                 credentialManager.getCredential(
-                    GetCredentialRequest.Builder()
+                    context = activity,
+                    request = GetCredentialRequest.Builder()
                         .addCredentialOption(signInOption)
-                        .build(),
-                    activity
+                        .build()
                 ).credential
             }
 
