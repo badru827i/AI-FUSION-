@@ -1037,48 +1037,65 @@ private fun AiFusionApp() {
             }
 
             if (showToolMenu) {
+                val tools = FusionToolRouter.allTools()
                 AlertDialog(
                     onDismissRequest = { showToolMenu = false },
-                    title = { Text("AI-FUSION Tools") },
+                    title = { Text("AI-FUSION Tools • undefined") },
                     text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                researchQuery = ""
-                                screen = AppScreen.RESEARCH
-                            }) { Text("Research / Fact Check") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                screen = AppScreen.MODEL_MANAGER
-                                models = modelStore.list()
-                            }) { Text("Local Model Manager") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                capabilities = DeviceOptimizer.detect(context)
-                                screen = AppScreen.DEVICE
-                            }) { Text("Smart Device / CPU-GPU-NPU") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                context.startActivity(Intent(context, Fusion3DActivity::class.java))
-                            }) { Text("3D Studio") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                ocrLauncher.launch(arrayOf("image/*"))
-                            }) { Text("Image / OCR") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                generateLocalImage()
-                            }) { Text("Create Image • Local") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                generateLocalVideo()
-                            }) { Text("Create Video • Local") }
-                            TextButton(onClick = {
-                                showToolMenu = false
-                                screen = AppScreen.SKILLS
-                            }) { Text("All AI Skills") }
-                            if (mediaStatus.isNotBlank()) {
-                                Text(mediaStatus, style = MaterialTheme.typography.bodySmall)
+                        LazyColumn(
+                            modifier = Modifier.height(520.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            items(tools, key = { it.id }) { tool ->
+                                TextButton(
+                                    onClick = {
+                                        showToolMenu = false
+                                        when (tool.id) {
+                                            "deep_research", "web_search", "fact_check", "research_monitor",
+                                            "site_reader", "source_compare", "multi_agent" -> {
+                                                researchQuery = ""
+                                                screen = AppScreen.RESEARCH
+                                            }
+                                            "model_manager" -> {
+                                                models = modelStore.list()
+                                                screen = AppScreen.MODEL_MANAGER
+                                            }
+                                            "device_info", "battery", "network", "hardware_scheduler", "ram_manager" -> {
+                                                capabilities = DeviceOptimizer.detect(context)
+                                                screen = AppScreen.DEVICE
+                                            }
+                                            "three_d", "three_d_scene" -> {
+                                                context.startActivity(Intent(context, Fusion3DActivity::class.java))
+                                            }
+                                            "ocr" -> ocrLauncher.launch(arrayOf("image/*"))
+                                            "image_create" -> generateLocalImage()
+                                            "video_create" -> generateLocalVideo()
+                                            "voice_input" -> startVoice()
+                                            "voice_output" -> {
+                                                val answer = messages.lastOrNull { !it.fromUser && it.text.isNotBlank() }?.text
+                                                if (!answer.isNullOrBlank()) speak(answer)
+                                            }
+                                            "file_compression", "context_compressor", "ram_manager" -> {
+                                                ResourceManager.clearTemporaryCache(context)
+                                                resourceStatus = ResourceManager.status(context)
+                                                status = "Compression/RAM • cache sementara dibersihkan"
+                                            }
+                                            else -> {
+                                                draft = tool.name + ": "
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(Modifier.fillMaxWidth()) {
+                                        Text(tool.name, style = MaterialTheme.typography.labelLarge)
+                                        Text(
+                                            tool.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                     },
