@@ -1040,7 +1040,7 @@ private fun AiFusionApp() {
                 val tools = FusionToolRouter.allTools()
                 AlertDialog(
                     onDismissRequest = { showToolMenu = false },
-                    title = { Text("AI-FUSION Tools • undefined") },
+                    title = { Text("AI-FUSION Tools • " + tools.size) },
                     text = {
                         LazyColumn(
                             modifier = Modifier.height(520.dp),
