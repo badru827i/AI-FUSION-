@@ -45,27 +45,15 @@ data class FusionSkill(
     val category: String
 )
 
-private val fusionSkills = listOf(
-    FusionSkill("Chat Core", "Reasoning, writing, planning and conversation.", "Use Chat Core to solve this task step by step.", Icons.Outlined.AutoAwesome, "Core"),
-    FusionSkill("Deep Research", "Break a question into parallel research tasks.", "Use Deep Research to investigate this question with evidence.", Icons.Outlined.Search, "Research"),
-    FusionSkill("Deep Fact Verification", "Cross-check claims and identify uncertainty.", "Verify every important claim and show the supporting evidence.", Icons.Outlined.Visibility, "Research"),
-    FusionSkill("Live Research Monitor", "Track current information and changes.", "Monitor this topic for current updates and explain what changed.", Icons.Outlined.Public, "Research"),
-    FusionSkill("Web & Site Reader", "Read and summarize web pages or sources.", "Read the provided site/source and extract the useful information.", Icons.Outlined.Language, "Research"),
-    FusionSkill("Source Compare", "Compare sources and separate facts from opinions.", "Compare these sources, reconcile differences and cite the evidence.", Icons.Outlined.Description, "Research"),
-    FusionSkill("Vision & OCR", "Understand images, screenshots and scanned text.", "Analyze this image, detect useful details and extract text.", Icons.Outlined.Visibility, "Multimodal"),
-    FusionSkill("Voice", "Speech input and natural spoken responses.", "Prepare a natural voice-ready answer for this request.", Icons.Outlined.GraphicEq, "Multimodal"),
-    FusionSkill("Files", "Read, summarize, organize and compress documents.", "Analyze the attached file, extract the useful information and propose a compressed representation.", Icons.Outlined.Description, "Tools"),
-    FusionSkill("Code", "Generate, explain, debug and refactor code.", "Act as a coding assistant and solve this programming task.", Icons.Outlined.Code, "Tools"),
-    FusionSkill("Image Create", "Create visual concepts and image prompts.", "Create a detailed visual concept for this request.", Icons.Outlined.Image, "Create"),
-    FusionSkill("Video Create", "Plan AI video scenes, motion and generation prompts.", "Create a video-generation plan with scenes, motion and timing.", Icons.Outlined.VideoLibrary, "Create"),
-    FusionSkill("3D Model Design", "Design 3D objects with dimensions, topology and materials.", "Design a 3D model for this idea. Include dimensions, parts, topology, materials, assembly and an export-ready modeling plan.", Icons.Outlined.ViewInAr, "Create"),
-    FusionSkill("3D Scene & CAD Plan", "Build a structured 3D scene or CAD workflow.", "Create a structured 3D/CAD plan with objects, measurements, constraints and assembly steps.", Icons.Outlined.Build, "Create"),
-    FusionSkill("Model Manager", "Import and route local .tflite/.onnx models.", "Choose an efficient local model strategy for this task.", Icons.Outlined.Memory, "AI Core"),
-    FusionSkill("Compression & RAM Manager", "Compress local chat data and keep memory use controlled.", "Compress this data efficiently and explain the lowest-RAM processing plan.", Icons.Outlined.Memory, "AI Core"),
-    FusionSkill("Hardware Scheduler", "Adapt work to CPU, GPU, NPU and device limits.", "Plan this workload for the available CPU, GPU and NPU resources.", Icons.Outlined.Settings, "AI Core"),
-    FusionSkill("Local AI / Offline", "Prefer on-device processing and minimize network use.", "Solve this locally/offline where practical and only use network data when needed.", Icons.Outlined.Memory, "AI Core"),
-    FusionSkill("Research Team", "Coordinate multiple specialized reasoning agents.", "Split this task into specialist agents, then merge and verify their findings.", Icons.Outlined.ShoppingCart, "AI Core")
-)
+private val fusionSkills = FusionToolRouter.allTools().map { info ->
+    FusionSkill(
+        name = info.name,
+        description = info.description,
+        prompt = "Use ${info.name} untuk: ",
+        icon = Icons.Outlined.AutoAwesome,
+        category = info.tool.name
+    )
+}
 
 @Composable
 fun SkillsScreen(
