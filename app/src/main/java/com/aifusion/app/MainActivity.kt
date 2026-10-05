@@ -771,13 +771,6 @@ private fun AiFusionApp() {
         }
     }
 
-    if (account == null) {
-        LoginScreen(
-            status = status,
-            signingIn = signingIn,
-            onSignIn = { scope.launch { signInGoogle() } }
-        )
-    } else {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -1316,52 +1309,52 @@ private fun ChatHome(
     val listState = rememberLazyListState()
 
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.lastIndex)
-        }
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
     }
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
+    Column(modifier = modifier.fillMaxSize()) {
         if (messages.isEmpty()) {
             EmptyState(onOpenResearch, onOpen3D)
         } else {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp)
             ) {
                 items(messages, key = { it.id }) { message ->
                     MessageBubble(message, onSpeak)
                 }
                 if (generating) {
                     item {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Surface(
+                                modifier = Modifier.size(30.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Outlined.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.size(10.dp))
                             Text(
                                 status.ifBlank { "AI sedang berfikir…" },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
             }
-        }
-
-        if (!generating && messages.isNotEmpty() && status.isNotBlank()) {
-            Text(
-                status,
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 2.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
 
         Composer(
@@ -1382,76 +1375,45 @@ private fun EmptyState(
     onOpen3D: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Surface(
-            modifier = Modifier.size(70.dp),
+            modifier = Modifier.size(62.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+            color = MaterialTheme.colorScheme.primaryContainer
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Outlined.AutoAwesome,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(30.dp)
                 )
             }
         }
-
         Spacer(Modifier.height(18.dp))
         Text(
-            "Hi, saya AI-FUSION",
+            "Apa yang boleh saya bantu?",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(7.dp))
         Text(
-            "Tanya apa sahaja. Saya boleh bantu fikir, cari, bina dan semak.",
+            "Tanya soalan, minta idea, semak fakta atau bina sesuatu.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
-        Spacer(Modifier.height(22.dp))
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            QuickCard(
-                Icons.Outlined.Public,
-                "Research",
-                { onOpenResearch("") },
-                Modifier.weight(1f)
-            )
-            QuickCard(
-                Icons.Outlined.AutoAwesome,
-                "Create",
-                { onOpenResearch("Create: ") },
-                Modifier.weight(1f)
-            )
+        Spacer(Modifier.height(24.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickCard(Icons.Outlined.Public, "Research", { onOpenResearch("") }, Modifier.weight(1f))
+            QuickCard(Icons.Outlined.AutoAwesome, "Create", { onOpenResearch("Create: ") }, Modifier.weight(1f))
         }
-
         Spacer(Modifier.height(10.dp))
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            QuickCard(
-                Icons.Outlined.ViewInAr,
-                "3D Design",
-                onOpen3D,
-                Modifier.weight(1f)
-            )
-            QuickCard(
-                Icons.Outlined.AttachFile,
-                "Files & Vision",
-                { onOpenResearch("Files: ") },
-                Modifier.weight(1f)
-            )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickCard(Icons.Outlined.ViewInAr, "3D Design", onOpen3D, Modifier.weight(1f))
+            QuickCard(Icons.Outlined.AttachFile, "Files & Vision", { onOpenResearch("Files: ") }, Modifier.weight(1f))
         }
     }
 }
@@ -1465,99 +1427,85 @@ private fun QuickCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(74.dp),
-        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.height(68.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 13.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(36.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.size(19.dp))
-                }
-            }
-            Text(
-                title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
+            Icon(icon, contentDescription = null, modifier = Modifier.size(19.dp))
+            Text(title, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
 
 @Composable
 private fun MessageBubble(message: ChatMessage, onSpeak: (String) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.fromUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        if (!message.fromUser) {
+    if (message.fromUser) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.88f),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.primary
+            ) {
+                Text(
+                    message.text.ifBlank { "…" },
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
             Surface(
                 modifier = Modifier.size(30.dp),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Outlined.AutoAwesome,
-                        contentDescription = null,
+                        contentDescription = "AI",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
-            Spacer(Modifier.size(8.dp))
-        }
-
-        Column(
-            horizontalAlignment = if (message.fromUser) Alignment.End else Alignment.Start
-        ) {
-            Surface(
-                modifier = if (message.fromUser) Modifier.fillMaxWidth(0.88f) else Modifier.fillMaxWidth(0.92f),
-                shape = RoundedCornerShape(
-                    topStart = 20.dp,
-                    topEnd = 20.dp,
-                    bottomStart = if (message.fromUser) 20.dp else 6.dp,
-                    bottomEnd = if (message.fromUser) 6.dp else 20.dp
-                ),
-                color = if (message.fromUser) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
-                }
-            ) {
+            Spacer(Modifier.size(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = message.text.ifBlank { "…" },
-                    color = if (message.fromUser) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+                    "AI-FUSION",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    message.text.ifBlank { "…" },
                     style = MaterialTheme.typography.bodyLarge
                 )
-            }
-
-            if (!message.fromUser && message.text.isNotBlank()) {
-                IconButton(
-                    onClick = { onSpeak(message.text) },
-                    modifier = Modifier.size(34.dp)
-                ) {
-                    Icon(
-                        Icons.Outlined.Speaker,
-                        contentDescription = "Read answer",
-                        modifier = Modifier.size(17.dp)
-                    )
+                if (message.text.isNotBlank()) {
+                    IconButton(
+                        onClick = { onSpeak(message.text) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Speaker,
+                            contentDescription = "Read answer",
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1576,35 +1524,31 @@ private fun Composer(
     Surface(
         modifier = modifier.padding(horizontal = 10.dp, vertical = 8.dp),
         shape = RoundedCornerShape(26.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
-        tonalElevation = 5.dp
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 2.dp
     ) {
         Row(
-            modifier = Modifier.padding(start = 4.dp, end = 5.dp, top = 4.dp, bottom = 4.dp),
+            modifier = Modifier.padding(start = 3.dp, end = 5.dp, top = 3.dp, bottom = 3.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            IconButton(onClick = onTools) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = "Tools",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            IconButton(onClick = onTools, modifier = Modifier.size(44.dp)) {
+                Icon(Icons.Outlined.Add, contentDescription = "Tools")
             }
 
             androidx.compose.foundation.text.BasicTextField(
                 value = draft,
                 onValueChange = onDraftChange,
-                modifier = Modifier.weight(1f).padding(vertical = 12.dp, horizontal = 6.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 7.dp, vertical = 12.dp),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurface
                 ),
                 singleLine = false,
-                maxLines = 5,
+                maxLines = 6,
                 decorationBox = { inner ->
                     Box {
                         if (draft.isBlank()) {
                             Text(
-                                "Tanya AI-FUSION…",
+                                "Message AI-FUSION",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -1613,37 +1557,24 @@ private fun Composer(
                 }
             )
 
-            IconButton(onClick = onVoice) {
-                Icon(
-                    Icons.Outlined.Mic,
-                    contentDescription = "Voice",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Surface(
-                modifier = Modifier.size(42.dp).clip(CircleShape).clickable(
-                    enabled = draft.isNotBlank(),
-                    onClick = onSend
-                ),
-                shape = CircleShape,
-                color = if (draft.isNotBlank()) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surface
+            if (draft.isBlank()) {
+                IconButton(onClick = onVoice, modifier = Modifier.size(44.dp)) {
+                    Icon(Icons.Outlined.Mic, contentDescription = "Voice")
                 }
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = "Send",
-                        modifier = Modifier.size(18.dp),
-                        tint = if (draft.isNotBlank()) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
+            } else {
+                Surface(
+                    modifier = Modifier.size(42.dp).clip(CircleShape).clickable(onClick = onSend),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.Send,
+                            contentDescription = "Send",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
         }
