@@ -95,7 +95,6 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.NoCredentialException
 import androidx.credentials.exceptions.GetCredentialException
 import com.aifusion.app.core.ChatMessage
 import com.aifusion.app.core.ChatSession
@@ -665,7 +664,7 @@ private fun AiFusionApp() {
 
             val clientId = buildClientId
             require(clientId.endsWith(".apps.googleusercontent.com")) {
-                "Google Client ID tidak sah atau belum dimasukkan melalui GitHub Actions"
+                "Google Web Client ID tidak sah atau belum dimasukkan melalui GitHub Actions"
             }
 
             fun createNonce(): String {
@@ -679,48 +678,32 @@ private fun AiFusionApp() {
 
             val credentialManager = CredentialManager.create(activity)
 
-            // Use the Activity directly. MutableContextWrapper can make the
-            // Credential Manager UI lose the foreground Activity on some phones.
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setServerClientId(clientId)
-                .setFilterByAuthorizedAccounts(false)
-                .setAutoSelectEnabled(false)
-                .setNonce(createNonce())
+            // Use the explicit Sign in with Google button flow as the primary
+            // path. Android's current guidance specifically recommends this
+            // flow for accounts that require re-authentication.
+            fun buildRequest() = GetCredentialRequest.Builder()
+                .addCredentialOption(
+                    GetSignInWithGoogleOption.Builder(clientId)
+                        .setNonce(createNonce())
+                        .build()
+                )
                 .build()
 
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
-
-            val credential = try {
-                credentialManager.getCredential(
-                    request = request,
-                    context = activity
-                ).credential
-            } catch (_: NoCredentialException) {
-                // No authorized credential: use the explicit Sign in with Google flow.
-                val signInOption = GetSignInWithGoogleOption.Builder(clientId)
-                    .setNonce(createNonce())
-                    .build()
-
+            var credential = try {
                 credentialManager.getCredential(
                     context = activity,
-                    request = GetCredentialRequest.Builder()
-                        .addCredentialOption(signInOption)
-                        .build()
+                    request = buildRequest()
                 ).credential
-            } catch (_: GetCredentialException) {
-                // Some accounts are shown in the picker but require re-authentication.
-                // Retry through the explicit Google button flow.
-                val signInOption = GetSignInWithGoogleOption.Builder(clientId)
-                    .setNonce(createNonce())
-                    .build()
-
+            } catch (firstError: Exception) {
+                // Clear stale Credential Manager state and retry once. This
+                // handles cached/re-auth states without changing app data.
+                runCatching {
+                    credentialManager.clearCredentialState(ClearCredentialStateRequest())
+                }
+                status = "Refreshing Google account…"
                 credentialManager.getCredential(
                     context = activity,
-                    request = GetCredentialRequest.Builder()
-                        .addCredentialOption(signInOption)
-                        .build()
+                    request = buildRequest()
                 ).credential
             }
 
@@ -733,7 +716,7 @@ private fun AiFusionApp() {
 
             val googleCredential = try {
                 GoogleIdTokenCredential.createFrom(credential.data)
-            } catch (e: GoogleIdTokenParsingException) {
+            } catch (_: GoogleIdTokenParsingException) {
                 error("ID token Google tidak dapat dibaca")
             }
 
@@ -766,14 +749,14 @@ private fun AiFusionApp() {
                 .take(260)
 
             status = when {
+                message.contains("16") &&
+                    message.contains("reauth", true) ->
+                    "Google OAuth mismatch • daftar SHA-1 debug di Google Cloud"
                 message.contains("10") &&
                     (message.contains("DEVELOPER_ERROR", true) ||
                      message.contains("developer", true) ||
                      message.contains("status code", true)) ->
                     "Google OAuth error (10) • semak package + SHA-1"
-                message.contains("16") &&
-                    message.contains("reauth", true) ->
-                    "Google Sign-In perlu pengesahan semula • cuba lagi"
                 message.contains("12501") ||
                     message.contains("canceled", true) ||
                     message.contains("cancelled", true) ->
