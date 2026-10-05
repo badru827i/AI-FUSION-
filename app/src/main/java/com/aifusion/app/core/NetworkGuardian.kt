@@ -1,6 +1,7 @@
 package com.aifusion.app.core
 
 import android.content.Context
+import androidx.annotation.SuppressLint
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -30,6 +31,7 @@ object NetworkGuardian {
         return NetworkState(type, true, metered)
     }
 
+    @SuppressLint("MissingPermission")
     private fun isFiveG(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         val tm = context.getSystemService(TelephonyManager::class.java) ?: return false
