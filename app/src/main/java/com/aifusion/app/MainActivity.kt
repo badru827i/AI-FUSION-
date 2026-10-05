@@ -336,6 +336,34 @@ private fun AiFusionApp() {
         }
 
         val routedTool = FusionToolRouter.detectTool(clean)
+
+        // Every non-chat tool is executed through the central 45-tool router.
+        // Model/file-dependent tools report a truthful capability status when
+        // their required input/runtime has not been supplied.
+        if (routedTool != FusionToolRouter.Tool.CHAT &&
+            routedTool != FusionToolRouter.Tool.IMAGE_CREATE &&
+            routedTool != FusionToolRouter.Tool.VIDEO_CREATE) {
+            generating = true
+            val userId = nextMessageId++
+            val aiId = nextMessageId++
+            messages = messages + ChatMessage(userId, true, clean)
+            messages = messages + ChatMessage(aiId, false, "")
+            draft = ""
+            status = FusionToolRouter.allTools().firstOrNull { it.tool == routedTool }?.name ?: "Tool"
+            val result = FusionToolRouter.execute(context, routedTool, clean)
+            messages = messages.dropLast(1) + ChatMessage(
+                aiId,
+                false,
+                (if (result.success) "✓ " else "⚠ ") + result.message
+            )
+            if (routedTool == FusionToolRouter.Tool.TTS && result.success) {
+                speak(clean.substringAfter(":", clean).trim())
+            }
+            generating = false
+            saveCurrent()
+            return
+        }
+
         if (routedTool == FusionToolRouter.Tool.IMAGE_CREATE || routedTool == FusionToolRouter.Tool.VIDEO_CREATE) {
             generating = true
             val userId = nextMessageId++
