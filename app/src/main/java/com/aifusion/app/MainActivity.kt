@@ -745,18 +745,26 @@ private fun AiFusionApp() {
             )
             status = "Google account connected"
         } catch (error: Exception) {
-            val message = error.message
-                ?.replace("\\n", " ")
-                ?.replace("\\r", " ")
-                ?.trim()
-                ?.take(220)
-                .orEmpty()
+            val message = error.message.orEmpty()
+                .replace("\\n", " ")
+                .replace("\\r", " ")
+                .trim()
+                .take(260)
 
             status = when {
-                message.contains("canceled", true) ||
-                message.contains("cancelled", true) -> "Google Sign-In dibatalkan"
-                message.isBlank() -> "Google Sign-In gagal — cuba lagi"
-                else -> "Google Sign-In error: $message"
+                message.contains("10") &&
+                    (message.contains("DEVELOPER_ERROR", true) ||
+                     message.contains("developer", true) ||
+                     message.contains("status code", true)) ->
+                    "Google OAuth error (10) • semak package + SHA-1"
+                message.contains("12501") ||
+                    message.contains("canceled", true) ||
+                    message.contains("cancelled", true) ->
+                    "Google Sign-In dibatalkan"
+                message.isBlank() ->
+                    "Google Sign-In gagal — cuba lagi"
+                else ->
+                    "Google Sign-In error: $message"
             }
         } finally {
             signingIn = false
