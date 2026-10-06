@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -12,7 +14,7 @@ val generateAiFusionIcon = tasks.register("generateAiFusionIcon") {
     doLast {
         val output = aiFusionGeneratedRes.get().file("drawable/ic_ai_fusion_image.webp").asFile
         output.parentFile.mkdirs()
-        val decoded = java.util.Base64.getDecoder().decode(aiFusionIconB64.asFile.readText().trim())
+        val decoded = Base64.getDecoder().decode(aiFusionIconB64.asFile.readText().trim())
         output.writeBytes(decoded)
     }
 }
