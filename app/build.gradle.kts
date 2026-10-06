@@ -57,7 +57,7 @@ android {
         buildConfig = true
     }
 
-    sourceSets.getByName("main").res.srcDir(aiFusionGeneratedRes)
+    sourceSets.getByName("main").res.srcDir(aiFusionGeneratedRes.get().asFile)
 
     packaging {
         resources {
