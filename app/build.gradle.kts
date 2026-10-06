@@ -3,6 +3,20 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val aiFusionIconB64 = layout.projectDirectory.file("src/main/icon/ic_ai_fusion.webp.b64")
+val aiFusionGeneratedRes = layout.buildDirectory.dir("generated/res/aiFusionIcon/main")
+val generateAiFusionIcon = tasks.register("generateAiFusionIcon") {
+    inputs.file(aiFusionIconB64)
+    outputs.file(aiFusionGeneratedRes.map { it.file("drawable/ic_ai_fusion_image.webp") })
+
+    doLast {
+        val output = aiFusionGeneratedRes.get().file("drawable/ic_ai_fusion_image.webp").asFile
+        output.parentFile.mkdirs()
+        val decoded = java.util.Base64.getDecoder().decode(aiFusionIconB64.asFile.readText().trim())
+        output.writeBytes(decoded)
+    }
+}
+
 android {
     namespace = "com.aifusion.app"
     compileSdk = 37
@@ -14,8 +28,6 @@ android {
         versionCode = 4
         versionName = "4.4.0"
 
-        // Public OAuth client ID is injected from the build environment.
-        // OAuth client IDs are not secrets; never put client secrets/private keys in the APK.
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
@@ -43,11 +55,17 @@ android {
         buildConfig = true
     }
 
+    sourceSets.getByName("main").res.srcDir(aiFusionGeneratedRes)
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(generateAiFusionIcon)
 }
 
 dependencies {
@@ -69,7 +87,6 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
 
-    // Local AI runtimes.
     implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
     implementation("dev.ffmpegkit-maintained:tesseract-android:5.5.0")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.30.0")
