@@ -37,6 +37,8 @@ object FusionToolRouter {
         IMAGE_CREATE,
         VIDEO_CREATE,
         THREE_D,
+        CAD_CODE,
+        MODEL_TO_CHAT,
         CAD_PLAN,
         CODE,
         CODE_DEBUG,
@@ -97,7 +99,9 @@ object FusionToolRouter {
         ToolInfo(Tool.IMAGE_ANALYSIS, "Image Analysis", "Inspect image/vision input", listOf("image analysis", "analisis gambar", "analyze image")),
         ToolInfo(Tool.IMAGE_CREATE, "Image Create", "Generate a local image artifact", listOf("buat gambar", "hasilkan gambar", "generate image", "create image")),
         ToolInfo(Tool.VIDEO_CREATE, "Video Create", "Generate a local MP4 artifact", listOf("buat video", "hasilkan video", "generate video", "create video")),
-        ToolInfo(Tool.THREE_D, "3D Model", "Build and open a local OBJ model", listOf("3d", "obj", "fbx", "model 3d", "design 3d")),
+        ToolInfo(Tool.THREE_D, "3D Model", "Build/open/import a local 3D model", listOf("3d", "obj", "fbx", "stl", "glb", "model 3d", "design 3d", "import 3d")),
+        ToolInfo(Tool.CAD_CODE, "CAD Coding", "Generate deterministic 3D geometry from CAD code", listOf("cad code", "cad coding", "cad kod", "box(", "cylinder(", "pyramid(")),
+        ToolInfo(Tool.MODEL_TO_CHAT, "Model → Chat", "Route an imported local AI model into Chat Core", listOf("model to chat", "model ke chat", "guna model", "use model", "local model chat")),
         ToolInfo(Tool.CAD_PLAN, "CAD Planner", "Produce structured engineering/CAD plan", listOf("cad", "engineering design", "kejuruteraan", "pelan cad")),
         ToolInfo(Tool.CODE, "Code", "Generate/explain code", listOf("code", "coding", "program", "kod")),
         ToolInfo(Tool.CODE_DEBUG, "Code Debug", "Diagnose code errors", listOf("debug code", "fix code", "debug kod", "fix error kod")),
@@ -175,6 +179,8 @@ object FusionToolRouter {
                 Tool.VISION_OCR -> ToolResult(tool, false, "OCR runtime is installed. Attach an image and use the OCR action to supply its URI.")
                 Tool.IMAGE_ANALYSIS -> ToolResult(tool, false, "Vision analysis requires an image input. OCR is available locally.")
                 Tool.IMAGE_CREATE, Tool.VIDEO_CREATE, Tool.THREE_D -> ToolResult(tool, true, "Handled by the dedicated media/3D action.")
+                Tool.CAD_CODE -> ToolResult(tool, true, "CAD Coding ready. Use box(w,h,d), cylinder(r,h) or pyramid(w,h,d).")
+                Tool.MODEL_TO_CHAT -> ToolResult(tool, true, com.aifusion.app.core.ModelChatRouter.status(context, com.aifusion.app.core.ModelManager(context).list()))
                 Tool.CAD_PLAN -> ToolResult(tool, true, cadPlan(prompt))
                 Tool.CODE -> ToolResult(tool, true, "Code tool active. Provide language + task for a generated implementation.")
                 Tool.CODE_DEBUG -> ToolResult(tool, true, "Code Debug active. Paste the failing code and exact error; the tool will isolate the failing section.")
