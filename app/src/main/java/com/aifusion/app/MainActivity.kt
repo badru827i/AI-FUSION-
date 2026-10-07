@@ -245,7 +245,8 @@ private fun AiFusionApp() {
     fun saveCurrent() {
         if (messages.isEmpty()) return
         val firstUser = messages.firstOrNull { it.fromUser }?.text.orEmpty()
-        val title = firstUser.ifBlank { "AI-FUSION Chat" }.take(48)        val session = ChatSession(sessionId, title, messages)
+        val title = firstUser.ifBlank { "AI-FUSION Chat" }.take(48)
+        val session = ChatSession(sessionId, title, messages)
         store.save(session)
     }
 
