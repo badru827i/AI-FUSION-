@@ -185,14 +185,12 @@ private fun AiFusionApp() {
     var hardwareSample by remember { mutableStateOf(HardwareMonitor.read(context)) }
     var hardwareHistory by remember { mutableStateOf(listOf(hardwareSample)) }
 
-    LaunchedEffect(showHardwareMonitor) {
-        if (showHardwareMonitor) {
-            while (true) {
-                val sample = HardwareMonitor.read(context)
-                hardwareSample = sample
-                hardwareHistory = (hardwareHistory + sample).takeLast(30)
-                delay(1000L)
-            }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val sample = HardwareMonitor.read(context)
+            hardwareSample = sample
+            hardwareHistory = (hardwareHistory + sample).takeLast(30)
+            delay(1000L)
         }
     }
 
@@ -247,8 +245,7 @@ private fun AiFusionApp() {
     fun saveCurrent() {
         if (messages.isEmpty()) return
         val firstUser = messages.firstOrNull { it.fromUser }?.text.orEmpty()
-        val title = firstUser.ifBlank { "AI-FUSION Chat" }.take(48)
-        val session = ChatSession(sessionId, title, messages)
+        val title = firstUser.ifBlank { "AI-FUSION Chat" }.take(48)        val session = ChatSession(sessionId, title, messages)
         store.save(session)
     }
 
@@ -497,8 +494,7 @@ private fun AiFusionApp() {
             partial = if (index == 0) word else partial + " " + word
             messages = messages.dropLast(1) + ChatMessage(aiId, false, partial)
             status = "● ● ●"
-            delay(if (capabilities.mode == PerformanceMode.LOW_RAM) 55L else 35L)
-        }
+            delay(if (capabilities.mode == PerformanceMode.LOW_RAM) 55L else 35L)        }
 
         generating = false
         status = when {
@@ -747,8 +743,7 @@ private fun AiFusionApp() {
                 ).credential
             } catch (firstError: Exception) {
                 // Clear stale Credential Manager state and retry once. This
-                // handles cached/re-auth states without changing app data.
-                runCatching {
+                // handles cached/re-auth states without changing app data.                runCatching {
                     credentialManager.clearCredentialState(ClearCredentialStateRequest())
                 }
                 status = "Refreshing Google account…"
@@ -964,6 +959,7 @@ private fun AiFusionApp() {
             when (screen) {
                 AppScreen.CHAT -> ChatHome(
                     modifier = Modifier.padding(padding),
+                    hardwareSample = hardwareSample,
                     messages = messages,
                     draft = draft,
                     generating = generating,
@@ -997,8 +993,7 @@ private fun AiFusionApp() {
                             researchQuery = ""
                             screen = AppScreen.RESEARCH
                         } else {
-                            screen = AppScreen.CHAT
-                            draft = skill.prompt
+                            screen = AppScreen.CHAT                            draft = skill.prompt
                         }
                     }
                 )
@@ -1247,8 +1242,7 @@ private fun HardwareMonitorPanel(
             HardwareMetric("GPU", HardwareMonitor.percentText(sample.gpuPercent), history.mapNotNull { it.gpuPercent })
             HardwareMetric("NPU", HardwareMonitor.percentText(sample.npuPercent), history.mapNotNull { it.npuPercent })
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
+            Card(                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
             ) {
@@ -1344,6 +1338,7 @@ private fun DrawerItem(
 @Composable
 private fun ChatHome(
     modifier: Modifier,
+    hardwareSample: HardwareSample,
     messages: List<ChatMessage>,
     draft: String,
     generating: Boolean,
@@ -1363,6 +1358,7 @@ private fun ChatHome(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
+        HardwareStatusStrip(sample = hardwareSample)
         if (messages.isEmpty()) {
             EmptyState(onOpenResearch, onOpen3D)
         } else {
@@ -1416,6 +1412,21 @@ private fun ChatHome(
             modifier = Modifier.fillMaxWidth().imePadding()
         )
         Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+    }
+}
+
+@Composable
+private fun HardwareStatusStrip(sample: HardwareSample) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 2.dp),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("CPU " + sample.cpuPercent.coerceIn(0f, 100f).toInt() + "%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.size(10.dp))
+        Text("GPU " + (sample.gpuPercent ?: 0f).coerceIn(0f, 100f).toInt() + "%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.size(10.dp))
+        Text("NPU " + (sample.npuPercent ?: 0f).coerceIn(0f, 100f).toInt() + "%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -1497,8 +1508,7 @@ private fun QuickCard(
 @Composable
 private fun MessageBubble(message: ChatMessage, onSpeak: (String) -> Unit) {
     if (message.fromUser) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
+        Row(            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
             Surface(
@@ -1747,8 +1757,7 @@ private fun SettingsScreen(
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-            )
-        ) {
+            )        ) {
             Column(Modifier.padding(18.dp)) {
                 Text("Compression & RAM Manager", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
