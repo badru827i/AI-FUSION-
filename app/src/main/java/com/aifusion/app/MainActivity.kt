@@ -495,7 +495,8 @@ private fun AiFusionApp() {
             partial = if (index == 0) word else partial + " " + word
             messages = messages.dropLast(1) + ChatMessage(aiId, false, partial)
             status = "● ● ●"
-            delay(if (capabilities.mode == PerformanceMode.LOW_RAM) 55L else 35L)        }
+            delay(if (capabilities.mode == PerformanceMode.LOW_RAM) 55L else 35L)
+        }
 
         generating = false
         status = when {
@@ -744,7 +745,8 @@ private fun AiFusionApp() {
                 ).credential
             } catch (firstError: Exception) {
                 // Clear stale Credential Manager state and retry once. This
-                // handles cached/re-auth states without changing app data.                runCatching {
+                // handles cached/re-auth states without changing app data.
+                runCatching {
                     credentialManager.clearCredentialState(ClearCredentialStateRequest())
                 }
                 status = "Refreshing Google account…"
@@ -994,7 +996,8 @@ private fun AiFusionApp() {
                             researchQuery = ""
                             screen = AppScreen.RESEARCH
                         } else {
-                            screen = AppScreen.CHAT                            draft = skill.prompt
+                            screen = AppScreen.CHAT
+                            draft = skill.prompt
                         }
                     }
                 )
@@ -1243,7 +1246,8 @@ private fun HardwareMonitorPanel(
             HardwareMetric("GPU", HardwareMonitor.percentText(sample.gpuPercent), history.mapNotNull { it.gpuPercent })
             HardwareMetric("NPU", HardwareMonitor.percentText(sample.npuPercent), history.mapNotNull { it.npuPercent })
 
-            Card(                modifier = Modifier.fillMaxWidth(),
+            Card(
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
             ) {
@@ -1509,7 +1513,8 @@ private fun QuickCard(
 @Composable
 private fun MessageBubble(message: ChatMessage, onSpeak: (String) -> Unit) {
     if (message.fromUser) {
-        Row(            modifier = Modifier.fillMaxWidth(),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
             Surface(
@@ -1758,7 +1763,8 @@ private fun SettingsScreen(
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-            )        ) {
+            )
+        ) {
             Column(Modifier.padding(18.dp)) {
                 Text("Compression & RAM Manager", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
