@@ -37,6 +37,11 @@ object FusionToolRouter {
         IMAGE_CREATE,
         VIDEO_CREATE,
         THREE_D,
+        DESIGN_3D,
+        CAD_IMPORT,
+        CAD_EXPORT,
+        CAD_EDIT,
+        CAD_MEASURE,
         CAD_CODE,
         MODEL_TO_CHAT,
         CAD_PLAN,
@@ -100,6 +105,11 @@ object FusionToolRouter {
         ToolInfo(Tool.IMAGE_CREATE, "Image Create", "Generate a local image artifact", listOf("buat gambar", "hasilkan gambar", "generate image", "create image")),
         ToolInfo(Tool.VIDEO_CREATE, "Video Create", "Generate a local MP4 artifact", listOf("buat video", "hasilkan video", "generate video", "create video")),
         ToolInfo(Tool.THREE_D, "3D Model", "Build/open/import a local 3D model", listOf("3d", "obj", "fbx", "stl", "glb", "model 3d", "design 3d", "import 3d")),
+        ToolInfo(Tool.DESIGN_3D, "3D Design Studio", "AI-assisted mobile CAD design workspace", listOf("3d design", "design 3d", "3d designer", "3d studio", "cad studio")),
+        ToolInfo(Tool.CAD_IMPORT, "CAD Import", "Import supported 3D/CAD assets into the editor", listOf("import cad", "import model", "import stl", "import obj", "import glb")),
+        ToolInfo(Tool.CAD_EXPORT, "CAD Export", "Export the current 3D design", listOf("export cad", "export model", "export stl", "export obj", "export glb")),
+        ToolInfo(Tool.CAD_EDIT, "CAD Edit", "Edit transforms and CAD model parameters", listOf("edit 3d", "edit model", "ubah model", "move model", "rotate model", "scale model")),
+        ToolInfo(Tool.CAD_MEASURE, "CAD Measure", "Measure model dimensions and geometry", listOf("measure 3d", "measure model", "ukur model", "dimension cad")),
         ToolInfo(Tool.CAD_CODE, "CAD Coding", "Generate deterministic 3D geometry from CAD code", listOf("cad code", "cad coding", "cad kod", "box(", "cylinder(", "pyramid(")),
         ToolInfo(Tool.MODEL_TO_CHAT, "Model → Chat", "Route an imported local AI model into Chat Core", listOf("model to chat", "model ke chat", "guna model", "use model", "local model chat")),
         ToolInfo(Tool.CAD_PLAN, "CAD Planner", "Produce structured engineering/CAD plan", listOf("cad", "engineering design", "kejuruteraan", "pelan cad")),
@@ -178,7 +188,12 @@ object FusionToolRouter {
                 Tool.LANGUAGE_DETECT -> ToolResult(tool, true, "Detected: ${com.aifusion.app.core.detectLanguage(prompt).name}")
                 Tool.VISION_OCR -> ToolResult(tool, false, "OCR runtime is installed. Attach an image and use the OCR action to supply its URI.")
                 Tool.IMAGE_ANALYSIS -> ToolResult(tool, false, "Vision analysis requires an image input. OCR is available locally.")
-                Tool.IMAGE_CREATE, Tool.VIDEO_CREATE, Tool.THREE_D -> ToolResult(tool, true, "Handled by the dedicated media/3D action.")
+                Tool.IMAGE_CREATE, Tool.VIDEO_CREATE -> ToolResult(tool, false, "Media generation is not part of the CAD toolset.")
+                Tool.THREE_D, Tool.DESIGN_3D -> ToolResult(tool, true, "3D Design Studio ready: viewport, AI design, CAD Coding, import/edit/measure/export.")
+                Tool.CAD_IMPORT -> ToolResult(tool, true, "CAD Import ready. OBJ/STL are the lightweight editor targets.")
+                Tool.CAD_EXPORT -> ToolResult(tool, true, "CAD Export ready. OBJ is available locally; other formats require an installed exporter.")
+                Tool.CAD_EDIT -> ToolResult(tool, true, "CAD Edit ready: select, move, rotate, scale and parameter editing.")
+                Tool.CAD_MEASURE -> ToolResult(tool, true, "CAD Measure ready for dimensions and geometry.")
                 Tool.CAD_CODE -> ToolResult(tool, true, "CAD Coding ready. Use box(w,h,d), cylinder(r,h) or pyramid(w,h,d).")
                 Tool.MODEL_TO_CHAT -> ToolResult(tool, true, com.aifusion.app.core.ModelChatRouter.status(context, com.aifusion.app.core.ModelManager(context).list()))
                 Tool.CAD_PLAN -> ToolResult(tool, true, cadPlan(prompt))
