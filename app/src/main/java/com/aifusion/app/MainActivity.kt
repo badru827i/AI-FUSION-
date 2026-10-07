@@ -112,6 +112,7 @@ import com.aifusion.app.core.LocalOcrEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
+import com.aifusion.app.core.ModelChatRouter
 import com.aifusion.app.core.ResourceManager
 import com.aifusion.app.core.ResourceStatus
 import com.aifusion.app.core.PerformanceMode
@@ -299,7 +300,30 @@ private fun AiFusionApp() {
             return
         }
 
-        if (FusionToolRouter.detectTool(clean) == FusionToolRouter.Tool.THREE_D) {
+        val detectedTool = FusionToolRouter.detectTool(clean)
+
+        if (detectedTool == FusionToolRouter.Tool.CAD_CODE) {
+            generating = true
+            status = "CAD Coding • building deterministic geometry…"
+            val userId = nextMessageId++
+            val aiId = nextMessageId++
+            messages = messages + ChatMessage(userId, true, clean)
+            messages = messages + ChatMessage(aiId, false, "CAD Code diterima. Membina geometry tepat secara lokal…")
+            draft = ""
+            runCatching {
+                val file = CadCodeEngine.build(clean, java.io.File(context.cacheDir, "fusion3d"))
+                context.startActivity(Intent(context, Fusion3DActivity::class.java).putExtra(Fusion3DActivity.EXTRA_MODEL_PATH, file.absolutePath))
+                status = "CAD Coding • model siap • OBJ • local"
+            }.onFailure {
+                messages = messages.dropLast(1) + ChatMessage(aiId, false, "CAD Code error: ${it.message ?: "sintaks tidak sah"}")
+                status = "CAD Code error"
+            }
+            generating = false
+            saveCurrent()
+            return
+        }
+
+        if (detectedTool == FusionToolRouter.Tool.THREE_D) {
             generating = true
             status = "3D Tool • building local mesh…"
             val userId = nextMessageId++
@@ -335,7 +359,7 @@ private fun AiFusionApp() {
             return
         }
 
-        val routedTool = FusionToolRouter.detectTool(clean)
+        val routedTool = detectedTool
 
         // Every non-chat tool is executed through the central 45-tool router.
         // Model/file-dependent tools report a truthful capability status when
@@ -435,7 +459,8 @@ private fun AiFusionApp() {
 
         // Real local inference when a GGUF model has been imported.
         // Current GGUF runtime is CPU/NEON on arm64-v8a; unsupported phones safely fall back.
-        val localGgufModel = models.firstOrNull { it.format.equals("GGUF", ignoreCase = true) }
+        val modelRoute = ModelChatRouter.route(models, capabilities)
+        val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
         val localNeural = if (!shouldTryRemote && localGgufModel != null) {
             runCatching {
                 LocalLlamaEngine.generate(
@@ -446,9 +471,7 @@ private fun AiFusionApp() {
                     capabilities = capabilities
                 )
             }.getOrNull()
-        } else {
-            null
-        }
+        } else null
 
         val response = if (shouldTryRemote) {
             val conversationForModel = messages.filter { it.text.isNotBlank() }.takeLast(24)
