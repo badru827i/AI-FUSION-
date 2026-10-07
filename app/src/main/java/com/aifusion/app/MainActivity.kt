@@ -359,7 +359,7 @@ private fun AiFusionApp() {
 
         val routedTool = detectedTool
 
-        // Every non-chat tool is executed through the central 45-tool router.
+        // Every non-chat tool is executed through the central 52-tool router.
         // Model/file-dependent tools report a truthful capability status when
         // their required input/runtime has not been supplied.
         if (routedTool != FusionToolRouter.Tool.CHAT &&
