@@ -24,7 +24,7 @@ object ModelChatRouter {
         if (gguf != null) {
             return Route(
                 gguf,
-                "Local GGUF • \${gguf.name}",
+                "Local GGUF • ${gguf.name}",
                 true,
                 "Model GGUF dipilih untuk penjanaan chat lokal; had memori ikut profil peranti."
             )
@@ -40,7 +40,7 @@ object ModelChatRouter {
         if (onnx != null) {
             return Route(
                 onnx,
-                "ONNX Chat candidate • \${onnx.name}",
+                "ONNX Chat candidate • ${onnx.name}",
                 true,
                 "Chat Core akan menguji input/output teks ONNX. Model LLM input_ids/logits memerlukan tokenizer dan runtime ONNX Runtime GenAI."
             )
@@ -53,7 +53,7 @@ object ModelChatRouter {
         if (tflite != null) {
             return Route(
                 tflite,
-                "LiteRT/TFLite model • \${tflite.name}",
+                "LiteRT/TFLite model • ${tflite.name}",
                 false,
                 "Runtime TFLite tersedia untuk inferens umum, tetapi adapter penjanaan chat belum tersedia."
             )
@@ -62,10 +62,10 @@ object ModelChatRouter {
         val first = models.first()
         return Route(
             first,
-            "Imported model • \${first.name}",
+            "Imported model • ${first.name}",
             false,
             if (first.sizeBytes > maxBytes) {
-                "Model melebihi had saiz profil peranti (\${maxBytes / (1024L * 1024L)} MB)."
+                "Model melebihi had saiz profil peranti (${maxBytes / (1024L * 1024L)} MB)."
             } else {
                 "Format ini belum mempunyai adapter chat langsung."
             }
