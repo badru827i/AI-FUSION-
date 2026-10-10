@@ -108,6 +108,8 @@ import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import com.aifusion.app.core.ChatMessage
+import com.aifusion.app.core.ChatCoreResult
+import com.aifusion.app.core.generateLocalReply
 import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
 import com.aifusion.app.core.HardwareMonitor
@@ -117,13 +119,10 @@ import com.aifusion.app.core.LocalChatStore
 import com.aifusion.app.core.AiChatClient
 import com.aifusion.app.core.ApiKeyStore
 import com.aifusion.app.core.LocalModel
-import com.aifusion.app.core.LocalAnswerEngine
-import com.aifusion.app.core.LocalLlamaEngine
 import com.aifusion.app.core.LocalOcrEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
-import com.aifusion.app.core.ModelChatRouter
 import com.aifusion.app.core.ResourceManager
 import com.aifusion.app.core.ResourceStatus
 import com.aifusion.app.core.PerformanceMode
@@ -680,16 +679,22 @@ private fun AiFusionMainApp() {
 
         val network = NetworkGuardian.state(context)
         val plan = ParallelComputeScheduler.plan(context, clean)
-        val local = LocalAnswerEngine.answer(
-            query = clean,
-            capabilities = capabilities,
-            network = network,
-            modelCount = models.size
-        )
+        var localCoreResult: ChatCoreResult? = null
 
-        // Local-first: answer on-device first. Remote AI is only an optional
-        // fallback when the user has configured an API key and the local
-        // layer cannot provide a useful answer.
+        suspend fun runLocalChatCore(): ChatCoreResult {
+            val result = generateLocalReply(
+                context = context,
+                conversation = messages.filter { it.text.isNotBlank() }.takeLast(24),
+                models = models,
+                capabilities = capabilities,
+                network = network
+            )
+            localCoreResult = result
+            return result
+        }
+
+        // Local model inference is the default. Remote AI is optional and only
+        // used for explicit live-search/current-information requests.
         var onlineUsed = false
         var onlineFailed = false
         val shouldTryRemote = aiApiKey.isNotBlank() &&
@@ -699,22 +704,6 @@ private fun AiFusionMainApp() {
              clean.contains("cari", true) ||
              clean.contains("search", true) ||
              clean.contains("web", true))
-
-        // Real local inference when a GGUF model has been imported.
-        // Current GGUF runtime is CPU/NEON on arm64-v8a; unsupported phones safely fall back.
-        val modelRoute = ModelChatRouter.route(models, capabilities)
-        val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
-        val localNeural = if (!shouldTryRemote && localGgufModel != null) {
-            runCatching {
-                LocalLlamaEngine.generate(
-                    context = context,
-                    modelUri = android.net.Uri.parse(localGgufModel.uri),
-                    modelName = localGgufModel.name,
-                    prompt = clean,
-                    capabilities = capabilities
-                )
-            }.getOrNull()
-        } else null
 
         val response = if (shouldTryRemote) {
             val conversationForModel = messages.filter { it.text.isNotBlank() }.takeLast(24)
@@ -728,10 +717,10 @@ private fun AiFusionMainApp() {
                 answer
             } catch (_: Exception) {
                 onlineFailed = true
-                localNeural ?: local
+                runLocalChatCore().displayText()
             }
         } else {
-            localNeural ?: local
+            runLocalChatCore().displayText()
         }
 
         val words = response.split(" ")
@@ -744,11 +733,12 @@ private fun AiFusionMainApp() {
         }
 
         generating = false
+        val localEngineDetail = localCoreResult?.engine.orEmpty() +
+            (localCoreResult?.modelName?.let { " • " + it }.orEmpty())
         status = when {
             onlineUsed -> "AI Assistant • web/remote • " + aiModel.trim()
-            onlineFailed && localNeural != null -> "Remote unavailable • Local GGUF"
-            onlineFailed -> "Remote unavailable • Local fallback"
-            localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
+            onlineFailed -> "Remote unavailable • " + localEngineDetail.ifBlank { "Local fallback" }
+            localCoreResult != null -> localEngineDetail
             else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
