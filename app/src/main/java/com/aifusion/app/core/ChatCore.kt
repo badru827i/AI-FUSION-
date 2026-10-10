@@ -60,7 +60,7 @@ suspend fun generateLocalReply(
     val selected = route.model
     val prompt = buildConversationPrompt(conversation)
 
-    if (selected != null && route.chatCapable) {
+    if (selected != null && route.canAttemptChat) {
         when {
             selected.format.equals("ONNX", ignoreCase = true) -> {
                 val attempt = runCatching {
