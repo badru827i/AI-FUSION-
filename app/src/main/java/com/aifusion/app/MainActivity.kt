@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -108,6 +109,8 @@ import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import com.aifusion.app.core.ChatMessage
+import com.aifusion.app.core.ChatCoreResult
+import com.aifusion.app.core.generateLocalReply
 import com.aifusion.app.core.ChatSession
 import com.aifusion.app.core.DeviceCapabilities
 import com.aifusion.app.core.HardwareMonitor
@@ -117,15 +120,13 @@ import com.aifusion.app.core.LocalChatStore
 import com.aifusion.app.core.AiChatClient
 import com.aifusion.app.core.ApiKeyStore
 import com.aifusion.app.core.LocalModel
-import com.aifusion.app.core.LocalAnswerEngine
-import com.aifusion.app.core.LocalLlamaEngine
 import com.aifusion.app.core.LocalOcrEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
-import com.aifusion.app.core.ModelChatRouter
 import com.aifusion.app.core.ResourceManager
 import com.aifusion.app.core.ResourceStatus
+import com.aifusion.app.core.ResearchCore
 import com.aifusion.app.core.PerformanceMode
 import com.aifusion.app.core.detectLanguage
 import com.aifusion.app.core.localResponse
@@ -169,26 +170,32 @@ private fun AiFusionApp() {
     LaunchedEffect(launchStage) {
         when (launchStage) {
             0 -> {
-                delay(1800L)
+                delay(1050L)
                 launchStage = 1
             }
             1 -> {
-                delay(2400L)
+                delay(1150L)
                 launchStage = 2
             }
         }
     }
 
-    when (launchStage) {
-        0 -> AiFusionLaunchScreen()
-        1 -> AiFusionLoadingScreen()
-        2 -> AiFusionHomeV3(
-            onNewChat = { launchStage = 3 },
-            onOpenChat = { launchStage = 3 },
-            onOpenEngine = { launchStage = 3 },
-            onOpenResearch = { launchStage = 3 }
-        )
-        else -> AiFusionMainApp()
+    Crossfade(
+        targetState = launchStage,
+        animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
+        label = "appLaunchTransition"
+    ) { stage ->
+        when (stage) {
+            0 -> AiFusionLaunchScreen()
+            1 -> AiFusionLoadingScreen()
+            2 -> AiFusionHomeV3(
+                onNewChat = { launchStage = 3 },
+                onOpenChat = { launchStage = 3 },
+                onOpenEngine = { launchStage = 3 },
+                onOpenResearch = { launchStage = 3 }
+            )
+            else -> AiFusionMainApp()
+        }
     }
 }
 
@@ -247,16 +254,6 @@ private fun AiFusionLaunchScreen() {
 
 @Composable
 private fun AiFusionLoadingScreen() {
-    val transition = rememberInfiniteTransition(label = "loadingPulse")
-    val progress by transition.animateFloat(
-        initialValue = 0.28f,
-        targetValue = 0.94f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "loadingProgress"
-    )
     Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF080D18)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 28.dp),
@@ -274,27 +271,26 @@ private fun AiFusionLoadingScreen() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Connecting local intelligence…",
+                text = "Preparing your assistant experience",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF7A8FAE)
             )
             Spacer(modifier = Modifier.height(30.dp))
             androidx.compose.material3.LinearProgressIndicator(
-                progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(8.dp)),
                 color = Color(0xFF33D1FA),
                 trackColor = Color(0xFF202F47)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "INITIALIZING NEURAL CORE",
+                text = "PREPARING CHAT INTERFACE",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF33D1FA),
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(18.dp))
             Text(
-                text = "Chat Core 3.0  •  Smart Device Engine",
+                text = "Chat Core 3.0  •  Local model checked when chat starts",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF7A8FAE)
             )
@@ -536,10 +532,59 @@ private fun AiFusionMainApp() {
         val clean = text.trim()
         if (clean.isBlank() || generating) return
 
-        if (clean.startsWith("Research:", ignoreCase = true)) {
-            researchQuery = clean.substringAfter(":").trim()
-            screen = AppScreen.RESEARCH
+        // Research is a first-class skill inside the same assistant chat.
+        if (clean.startsWith("Research:", ignoreCase = true) ||
+            clean.startsWith("Kajian:", ignoreCase = true) ||
+            clean.startsWith("Fact check:", ignoreCase = true)) {
+            val query = clean.substringAfter(":").trim()
+            if (query.isBlank()) {
+                messages = messages + ChatMessage(nextMessageId++, false,
+                    "Tulis topik selepas Research: atau hantar soalan seperti biasa. Contoh: Research: model AI lokal Android 2026")
+                return
+            }
+            generating = true
+            status = "Research skill • 4 agents searching"
+            val userId = nextMessageId++
+            val aiId = nextMessageId++
+            messages = messages + ChatMessage(userId, true, clean)
+            messages = messages + ChatMessage(aiId, false, "Sedang mencari sumber dan menyemak silang bukti…")
             draft = ""
+            saveCurrent()
+            try {
+                val results = ResearchCore.research(query)
+                val report = results.firstOrNull()?.verification
+                val sources = results.flatMap { it.sources }.distinctBy { it.url }.take(10)
+                val summary = buildString {
+                    append("Research Assistant — ").append(query).append("\n\n")
+                    if (sources.isEmpty()) {
+                        append("Saya tidak dapat mengambil sumber web kali ini. Semak sambungan Internet atau cuba kata kunci yang lebih khusus.")
+                    } else {
+                        append("Saya menyemak hasil daripada 4 laluan carian selari. Sumber di bawah ialah bahan untuk disemak, bukan jaminan bahawa setiap dakwaan telah disahkan.\n\n")
+                        report?.let {
+                            append("Semakan bukti: ").append(it.verdict)
+                                .append(" (skor heuristik ").append(it.score).append("/100)\n")
+                            append("Sumber unik: ").append(it.uniqueSources)
+                                .append(" • Domain: ").append(it.uniqueDomains).append("\n")
+                            append(it.explanation).append("\n\n")
+                        }
+                        append("Sumber untuk diperiksa:\n")
+                        sources.forEachIndexed { index, source ->
+                            append(index + 1).append(". ").append(source.title).append("\n")
+                            append(source.url).append("\n")
+                        }
+                        append("\nNota: skor ialah penilaian heuristik, bukan pengesahan fakta secara matematik.")
+                    }
+                }
+                messages = messages.dropLast(1) + ChatMessage(aiId, false, summary)
+                status = if (sources.isEmpty()) "Research Assistant • no sources" else "Research Assistant • " + sources.size + " sources"
+            } catch (error: Exception) {
+                messages = messages.dropLast(1) + ChatMessage(aiId, false,
+                    "Research tidak berjaya: " + (error.message ?: "ralat rangkaian") + ". Chat biasa dan skill lokal masih boleh digunakan.")
+                status = "Research skill • failed"
+            } finally {
+                generating = false
+                saveCurrent()
+            }
             return
         }
 
@@ -680,16 +725,22 @@ private fun AiFusionMainApp() {
 
         val network = NetworkGuardian.state(context)
         val plan = ParallelComputeScheduler.plan(context, clean)
-        val local = LocalAnswerEngine.answer(
-            query = clean,
-            capabilities = capabilities,
-            network = network,
-            modelCount = models.size
-        )
+        var localCoreResult: ChatCoreResult? = null
 
-        // Local-first: answer on-device first. Remote AI is only an optional
-        // fallback when the user has configured an API key and the local
-        // layer cannot provide a useful answer.
+        suspend fun runLocalChatCore(): ChatCoreResult {
+            val result = generateLocalReply(
+                context = context,
+                conversation = messages.filter { it.text.isNotBlank() }.takeLast(24),
+                models = models,
+                capabilities = capabilities,
+                network = network
+            )
+            localCoreResult = result
+            return result
+        }
+
+        // Local model inference is the default. Remote AI is optional and only
+        // used for explicit live-search/current-information requests.
         var onlineUsed = false
         var onlineFailed = false
         val shouldTryRemote = aiApiKey.isNotBlank() &&
@@ -699,22 +750,6 @@ private fun AiFusionMainApp() {
              clean.contains("cari", true) ||
              clean.contains("search", true) ||
              clean.contains("web", true))
-
-        // Real local inference when a GGUF model has been imported.
-        // Current GGUF runtime is CPU/NEON on arm64-v8a; unsupported phones safely fall back.
-        val modelRoute = ModelChatRouter.route(models, capabilities)
-        val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
-        val localNeural = if (!shouldTryRemote && localGgufModel != null) {
-            runCatching {
-                LocalLlamaEngine.generate(
-                    context = context,
-                    modelUri = android.net.Uri.parse(localGgufModel.uri),
-                    modelName = localGgufModel.name,
-                    prompt = clean,
-                    capabilities = capabilities
-                )
-            }.getOrNull()
-        } else null
 
         val response = if (shouldTryRemote) {
             val conversationForModel = messages.filter { it.text.isNotBlank() }.takeLast(24)
@@ -728,10 +763,10 @@ private fun AiFusionMainApp() {
                 answer
             } catch (_: Exception) {
                 onlineFailed = true
-                localNeural ?: local
+                runLocalChatCore().displayText()
             }
         } else {
-            localNeural ?: local
+            runLocalChatCore().displayText()
         }
 
         val words = response.split(" ")
@@ -744,11 +779,12 @@ private fun AiFusionMainApp() {
         }
 
         generating = false
+        val localEngineDetail = localCoreResult?.engine.orEmpty() +
+            (localCoreResult?.modelName?.let { " • " + it }.orEmpty())
         status = when {
             onlineUsed -> "AI Assistant • web/remote • " + aiModel.trim()
-            onlineFailed && localNeural != null -> "Remote unavailable • Local GGUF"
-            onlineFailed -> "Remote unavailable • Local fallback"
-            localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
+            onlineFailed -> "Remote unavailable • " + localEngineDetail.ifBlank { "Local fallback" }
+            localCoreResult != null -> localEngineDetail
             else -> "Local AI • " + plan.units.joinToString("+")
         }
         saveCurrent()
@@ -801,17 +837,17 @@ private fun AiFusionMainApp() {
             when {
                 model.format.equals("ONNX", true) -> {
                     val result = runCatching {
-                        com.aifusion.app.core.OnnxInferenceEngine.smokeTest(
+                        com.aifusion.app.core.OnnxInferenceEngine.generateChat(
                             context = context,
-                            uri = uri,
-                            modelName = model.name,
+                            model = model,
+                            prompt = "Reply exactly: ONNX chat test passed.",
                             capabilities = capabilities
                         )
                     }.getOrNull()
-                    modelTestStatus = if (result != null) {
-                        "ONNX OK • ${result.accelerator} • input ${result.inputShape.contentToString()} • outputs ${result.outputCount}"
-                    } else {
-                        "ONNX test failed or model input is unsupported for generic smoke inference."
+                    modelTestStatus = when {
+                        result == null -> "ONNX chat test failed to load the model or start inference."
+                        result.success -> "ONNX CHAT READY • " + result.accelerator + " • " + result.reason
+                        else -> "ONNX imported, but this graph is not chat-compatible • " + result.reason
                     }
                 }
                 model.format.equals("TFLITE", true) -> {

@@ -359,6 +359,12 @@ fun ModelManagerScreen(
                 "Import .tflite / .onnx files without loading a large model into RAM until an execution adapter is selected.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Text(
+                "ONNX chat currently supports a model with one STRING input and STRING output. Most LLM exports using token IDs need ONNX Runtime GenAI and tokenizer files; use Test to check compatibility.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
             Text("Recommended route: " + modelTier, style = MaterialTheme.typography.bodyLarge)
             if (testStatus.isNotBlank()) {
                 Text(
