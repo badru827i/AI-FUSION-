@@ -1365,7 +1365,12 @@ private fun ChatHome(
     Column(modifier = modifier.fillMaxSize()) {
         HardwareStatusStrip(sample = hardwareSample)
         if (messages.isEmpty()) {
-            EmptyState(onOpenResearch, onOpen3D)
+            // Keep the welcome panel inside the space above the composer.
+            // EmptyState uses fillMaxSize(), so constrain it with a weighted Box;
+            // otherwise it can push the chat composer below the visible screen.
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                EmptyState(onOpenResearch, onOpen3D)
+            }
         } else {
             LazyColumn(
                 state = listState,
