@@ -4,15 +4,9 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#020817" android:pathData="M0,0h108v108h-108z"/>
-    <path android:fillColor="#081B48" android:pathData="M54,5A49,49 0,1 0,54 103A49,49 0,1 0,54 5"/>
-    <path android:fillColor="#001D55" android:pathData="M54,12A42,42 0,1 0,54 96A42,42 0,1 0,54 12"/>
-    <path android:fillColor="#08D9FF" android:pathData="M54,16A38,38 0,1 0,54 92A38,38 0,1 0,54 16M54,20A34,34 0,1 1,54 88A34,34 0,1 1,54 20"/>
-    <path android:fillColor="#FF1744" android:pathData="M54,8A46,46 0,0 1,94 31L91,33A42,42 0,0 0,54 12Z"/>
-    <path android:fillColor="#FF1744" android:pathData="M14,77A46,46 0,0 0,54 100L54,96A42,42 0,0 1,17 75Z"/>
-    <path android:fillColor="#0AA9FF" android:pathData="M54,22L79,82L66,77L54,49L42,77L29,82Z"/>
-    <path android:fillColor="#6DF4FF" android:pathData="M54,22L57,31L50,49L42,77L29,82L47,43Z"/>
-    <path android:fillColor="#008CFF" android:pathData="M54,49L66,77L54,73L42,77Z"/>
-    <path android:fillColor="#00E5FF" android:pathData="M54,50L61,66L47,66Z"/>
-    <path android:fillColor="#D8FFFF" android:pathData="M54,22L58,35L50,35Z"/>
+    <path android:fillColor="#080D18" android:pathData="M0,0h108v108h-108z" />
+    <path android:fillColor="#0B1830" android:pathData="M54,7A47,47 0,1 0,54 101A47,47 0,1 0,54 7" />
+    <path android:fillColor="#00000000" android:strokeColor="#33D1FA" android:strokeAlpha="0.8" android:strokeWidth="1.8" android:pathData="M54,54L31,28L15,38 M54,54L76,26L92,38 M54,54L88,56L96,75 M54,54L73,81L61,96 M54,54L30,79L14,69 M54,54L20,54L15,45 M31,28L45,15L76,26 M30,79L43,94L73,81 M76,26L87,14" />
+    <path android:fillColor="#EAFBFF" android:strokeColor="#33D1FA" android:strokeWidth="1.5" android:pathData="M54,50A4,4 0,1 0,54 58A4,4 0,1 0,54 50 M31,24A4,4 0,1 0,31 32A4,4 0,1 0,31 24 M15,34A4,4 0,1 0,15 42A4,4 0,1 0,15 34 M76,22A4,4 0,1 0,76 30A4,4 0,1 0,76 22 M92,34A4,4 0,1 0,92 42A4,4 0,1 0,92 34 M88,52A4,4 0,1 0,88 60A4,4 0,1 0,88 52 M96,71A4,4 0,1 0,96 79A4,4 0,1 0,96 71 M73,77A4,4 0,1 0,73 85A4,4 0,1 0,73 77 M61,92A4,4 0,1 0,61 100A4,4 0,1 0,61 92 M30,75A4,4 0,1 0,30 83A4,4 0,1 0,30 75 M14,65A4,4 0,1 0,14 73A4,4 0,1 0,14 65 M20,50A4,4 0,1 0,20 58A4,4 0,1 0,20 50" />
+    <path android:fillColor="#33D1FA" android:strokeColor="#EAFBFF" android:strokeWidth="1.3" android:strokeLineJoin="round" android:pathData="M57,31L39,57L51,57L48,78L69,47L56,47Z" />
 </vector>
