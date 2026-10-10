@@ -6,7 +6,7 @@ object ModelChatRouter {
     data class Route(
         val model: LocalModel?,
         val label: String,
-        val chatCapable: Boolean,
+        val canAttemptChat: Boolean,
         val reason: String
     )
 
