@@ -130,7 +130,7 @@ private fun buildConversationPrompt(conversation: List<ChatMessage>): String {
         ChatLanguage.ENGLISH -> "You are AI-FUSION Assistant. Answer accurately and helpfully in English."
         ChatLanguage.MIXED -> "You are AI-FUSION Assistant. Match the user's natural mix of Malay and English."
     }
-    val turns = conversation.asSequence()
+    val turns = conversation
         .filter { it.text.isNotBlank() }
         .takeLast(12)
         .joinToString("\n") { message ->
