@@ -182,6 +182,12 @@ private fun AiFusionApp() {
     when (launchStage) {
         0 -> AiFusionLaunchScreen()
         1 -> AiFusionLoadingScreen()
+        2 -> AiFusionHomeV3(
+            onNewChat = { launchStage = 3 },
+            onOpenChat = { launchStage = 3 },
+            onOpenEngine = { launchStage = 3 },
+            onOpenResearch = { launchStage = 3 }
+        )
         else -> AiFusionMainApp()
     }
 }
