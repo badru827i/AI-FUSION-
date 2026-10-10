@@ -125,7 +125,7 @@ object OnnxInferenceEngine {
         if (fileSize > maxBytes) {
             return@withContext OnnxChatAttempt(
                 null, "CPU",
-                "Model terlalu besar untuk \${DeviceOptimizer.label(capabilities.mode)} mode (had fail \${maxBytes / (1024L * 1024L)} MB)."
+                "Model terlalu besar untuk ${DeviceOptimizer.label(capabilities.mode)} mode (had fail ${maxBytes / (1024L * 1024L)} MB)."
             )
         }
 
@@ -153,7 +153,7 @@ object OnnxInferenceEngine {
             if (inputs.size != 1) {
                 return@withContext OnnxChatAttempt(
                     null, "CPU",
-                    "Graf ONNX mempunyai \${inputs.size} input. Chat memerlukan satu input STRING; model LLM input_ids/logits memerlukan runtime GenAI."
+                    "Graf ONNX mempunyai ${inputs.size} input. Chat memerlukan satu input STRING; model LLM input_ids/logits memerlukan runtime GenAI."
                 )
             }
 
@@ -163,7 +163,7 @@ object OnnxInferenceEngine {
             if (inputInfo.type != OnnxJavaType.STRING) {
                 return@withContext OnnxChatAttempt(
                     null, "CPU",
-                    "Input model ialah \${inputInfo.type}, bukan STRING. Model LLM token-ID memerlukan tokenizer dan ONNX Runtime GenAI."
+                    "Input model ialah ${inputInfo.type}, bukan STRING. Model LLM token-ID memerlukan tokenizer dan ONNX Runtime GenAI."
                 )
             }
 
@@ -222,7 +222,7 @@ object OnnxInferenceEngine {
 
         val safeName = model.name.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "model.onnx" }
         val suffix = Integer.toHexString(uri.toString().hashCode())
-        val target = File(directory, "\${safeName}_$suffix")
+        val target = File(directory, "${safeName}_$suffix")
         if (target.isFile && target.length() > 0L &&
             (model.sizeBytes <= 0L || model.sizeBytes == target.length())
         ) return target
