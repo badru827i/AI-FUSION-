@@ -165,22 +165,29 @@ class MainActivity : ComponentActivity() {
 private fun AiFusionApp() {
     var launchStage by rememberSaveable { mutableStateOf(0) }
 
+    // Automatic launch sequence: splash → neural loading → chat.
     LaunchedEffect(launchStage) {
-        if (launchStage == 1) {
-            delay(1700L)
-            launchStage = 2
+        when (launchStage) {
+            0 -> {
+                delay(1800L)
+                launchStage = 1
+            }
+            1 -> {
+                delay(2400L)
+                launchStage = 2
+            }
         }
     }
 
     when (launchStage) {
-        0 -> AiFusionLaunchScreen(onStart = { launchStage = 1 })
+        0 -> AiFusionLaunchScreen()
         1 -> AiFusionLoadingScreen()
         else -> AiFusionMainApp()
     }
 }
 
 @Composable
-private fun AiFusionLaunchScreen(onStart: () -> Unit) {
+private fun AiFusionLaunchScreen() {
     Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF080D18)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 28.dp),
@@ -209,19 +216,20 @@ private fun AiFusionLaunchScreen(onStart: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF7A8FAE)
             )
+            Spacer(modifier = Modifier.height(30.dp))
+            androidx.compose.material3.LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(0.82f).height(3.dp).clip(RoundedCornerShape(8.dp)),
+                color = Color(0xFF33D1FA),
+                trackColor = Color(0xFF202F47)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "STARTING NEURAL CORE",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF33D1FA),
+                fontWeight = FontWeight.SemiBold
+            )
             Spacer(modifier = Modifier.weight(0.8f))
-            Button(
-                onClick = onStart,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF33D1FA),
-                    contentColor = Color(0xFF080D18)
-                )
-            ) {
-                Text("TAP TO START", fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = "LOCAL-FIRST  •  SMART  •  READY",
                 style = MaterialTheme.typography.labelSmall,
