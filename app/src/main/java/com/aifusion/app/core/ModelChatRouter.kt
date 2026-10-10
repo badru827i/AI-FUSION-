@@ -12,41 +12,74 @@ object ModelChatRouter {
 
     fun route(models: List<LocalModel>, capabilities: DeviceCapabilities): Route {
         if (models.isEmpty()) {
-            return Route(null, "Chat Core fallback", false, "No local model imported.")
+            return Route(null, "Chat Core fallback", false, "Tiada model lokal diimport.")
         }
-        val gguf = models.filter { it.format.equals("GGUF", true) }
-            .minByOrNull { it.sizeBytes.takeIf { s -> s > 0 } ?: Long.MAX_VALUE }
+
+        val maxBytes = maxModelBytes(capabilities)
+        val gguf = models.asSequence()
+            .filter { it.format.equals("GGUF", true) }
+            .filter { it.sizeBytes <= 0L || it.sizeBytes <= maxBytes }
+            .minByOrNull { it.sizeBytes.takeIf { size -> size > 0L } ?: Long.MAX_VALUE }
 
         if (gguf != null) {
-            val maxBytes = when (capabilities.mode) {
-                PerformanceMode.LOW_RAM -> 700L * 1024 * 1024
-                PerformanceMode.BALANCED -> 2L * 1024 * 1024 * 1024
-                PerformanceMode.PERFORMANCE -> 4L * 1024 * 1024 * 1024
-            }
-            if (gguf.sizeBytes <= 0L || gguf.sizeBytes <= maxBytes) {
-                return Route(
-                    gguf,
-                    "Local GGUF • ${gguf.name}",
-                    true,
-                    "GGUF is the preferred local chat runtime for this device tier."
-                )
-            }
+            return Route(
+                gguf,
+                "Local GGUF • \${gguf.name}",
+                true,
+                "Model GGUF dipilih untuk penjanaan chat lokal; had memori ikut profil peranti."
+            )
         }
 
-        val onnx = models.firstOrNull { it.format.equals("ONNX", true) }
-        if (onnx != null) return Route(onnx, "ONNX model • ${onnx.name}", false,
-            "Imported ONNX is available for inference tools, but generic chat tokenization cannot be assumed.")
+        // ONNX can be routed to Chat Core, but the actual engine must verify the
+        // graph signature. Not every .onnx file is a text-generating language model.
+        val onnx = models.asSequence()
+            .filter { it.format.equals("ONNX", true) }
+            .filter { it.sizeBytes <= 0L || it.sizeBytes <= maxBytes }
+            .minByOrNull { it.sizeBytes.takeIf { size -> size > 0L } ?: Long.MAX_VALUE }
 
-        val tflite = models.firstOrNull { it.format.equals("TFLITE", true) }
-        if (tflite != null) return Route(tflite, "LiteRT/TFLite model • ${tflite.name}", false,
-            "Imported LiteRT/TFLite is available for inference tools, but generic chat tokenization cannot be assumed.")
+        if (onnx != null) {
+            return Route(
+                onnx,
+                "ONNX Chat candidate • \${onnx.name}",
+                true,
+                "Chat Core akan menguji input/output teks ONNX. Model LLM input_ids/logits memerlukan tokenizer dan runtime ONNX Runtime GenAI."
+            )
+        }
 
-        return Route(models.first(), "Imported model • ${models.first().name}", false,
-            "Format imported, but no safe generic chat runtime is available.")
+        val tflite = models.asSequence()
+            .filter { it.format.equals("TFLITE", true) }
+            .minByOrNull { it.sizeBytes.takeIf { size -> size > 0L } ?: Long.MAX_VALUE }
+
+        if (tflite != null) {
+            return Route(
+                tflite,
+                "LiteRT/TFLite model • \${tflite.name}",
+                false,
+                "Runtime TFLite tersedia untuk inferens umum, tetapi adapter penjanaan chat belum tersedia."
+            )
+        }
+
+        val first = models.first()
+        return Route(
+            first,
+            "Imported model • \${first.name}",
+            false,
+            if (first.sizeBytes > maxBytes) {
+                "Model melebihi had saiz profil peranti (\${maxBytes / (1024L * 1024L)} MB)."
+            } else {
+                "Format ini belum mempunyai adapter chat langsung."
+            }
+        )
     }
 
     fun status(context: Context, models: List<LocalModel>): String {
         val route = route(models, DeviceOptimizer.detect(context))
         return route.label + " • " + route.reason
+    }
+
+    private fun maxModelBytes(capabilities: DeviceCapabilities): Long = when (capabilities.mode) {
+        PerformanceMode.LOW_RAM -> 700L * 1024 * 1024
+        PerformanceMode.BALANCED -> 2L * 1024 * 1024 * 1024
+        PerformanceMode.PERFORMANCE -> 4L * 1024 * 1024 * 1024
     }
 }
