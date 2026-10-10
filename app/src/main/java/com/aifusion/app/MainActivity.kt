@@ -126,6 +126,7 @@ import com.aifusion.app.core.ParallelComputeScheduler
 import com.aifusion.app.core.ModelManager
 import com.aifusion.app.core.ResourceManager
 import com.aifusion.app.core.ResourceStatus
+import com.aifusion.app.core.ResearchCore
 import com.aifusion.app.core.PerformanceMode
 import com.aifusion.app.core.detectLanguage
 import com.aifusion.app.core.localResponse
@@ -531,10 +532,59 @@ private fun AiFusionMainApp() {
         val clean = text.trim()
         if (clean.isBlank() || generating) return
 
-        if (clean.startsWith("Research:", ignoreCase = true)) {
-            researchQuery = clean.substringAfter(":").trim()
-            screen = AppScreen.RESEARCH
+        // Research is a first-class skill inside the same assistant chat.
+        if (clean.startsWith("Research:", ignoreCase = true) ||
+            clean.startsWith("Kajian:", ignoreCase = true) ||
+            clean.startsWith("Fact check:", ignoreCase = true)) {
+            val query = clean.substringAfter(":").trim()
+            if (query.isBlank()) {
+                messages = messages + ChatMessage(nextMessageId++, false,
+                    "Tulis topik selepas Research: atau hantar soalan seperti biasa. Contoh: Research: model AI lokal Android 2026")
+                return
+            }
+            generating = true
+            status = "Research skill • 4 agents searching"
+            val userId = nextMessageId++
+            val aiId = nextMessageId++
+            messages = messages + ChatMessage(userId, true, clean)
+            messages = messages + ChatMessage(aiId, false, "Sedang mencari sumber dan menyemak silang bukti…")
             draft = ""
+            saveCurrent()
+            try {
+                val results = ResearchCore.research(query)
+                val report = results.firstOrNull()?.verification
+                val sources = results.flatMap { it.sources }.distinctBy { it.url }.take(10)
+                val summary = buildString {
+                    append("Research Assistant — ").append(query).append("\n\n")
+                    if (sources.isEmpty()) {
+                        append("Saya tidak dapat mengambil sumber web kali ini. Semak sambungan Internet atau cuba kata kunci yang lebih khusus.")
+                    } else {
+                        append("Saya menyemak hasil daripada 4 laluan carian selari. Sumber di bawah ialah bahan untuk disemak, bukan jaminan bahawa setiap dakwaan telah disahkan.\n\n")
+                        report?.let {
+                            append("Semakan bukti: ").append(it.verdict)
+                                .append(" (skor heuristik ").append(it.score).append("/100)\n")
+                            append("Sumber unik: ").append(it.uniqueSources)
+                                .append(" • Domain: ").append(it.uniqueDomains).append("\n")
+                            append(it.explanation).append("\n\n")
+                        }
+                        append("Sumber untuk diperiksa:\n")
+                        sources.forEachIndexed { index, source ->
+                            append(index + 1).append(". ").append(source.title).append("\n")
+                            append(source.url).append("\n")
+                        }
+                        append("\nNota: skor ialah penilaian heuristik, bukan pengesahan fakta secara matematik.")
+                    }
+                }
+                messages = messages.dropLast(1) + ChatMessage(aiId, false, summary)
+                status = if (sources.isEmpty()) "Research Assistant • no sources" else "Research Assistant • " + sources.size + " sources"
+            } catch (error: Exception) {
+                messages = messages.dropLast(1) + ChatMessage(aiId, false,
+                    "Research tidak berjaya: " + (error.message ?: "ralat rangkaian") + ". Chat biasa dan skill lokal masih boleh digunakan.")
+                status = "Research skill • failed"
+            } finally {
+                generating = false
+                saveCurrent()
+            }
             return
         }
 
