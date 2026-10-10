@@ -791,17 +791,17 @@ private fun AiFusionMainApp() {
             when {
                 model.format.equals("ONNX", true) -> {
                     val result = runCatching {
-                        com.aifusion.app.core.OnnxInferenceEngine.smokeTest(
+                        com.aifusion.app.core.OnnxInferenceEngine.generateChat(
                             context = context,
-                            uri = uri,
-                            modelName = model.name,
+                            model = model,
+                            prompt = "Reply exactly: ONNX chat test passed.",
                             capabilities = capabilities
                         )
                     }.getOrNull()
-                    modelTestStatus = if (result != null) {
-                        "ONNX OK • ${result.accelerator} • input ${result.inputShape.contentToString()} • outputs ${result.outputCount}"
-                    } else {
-                        "ONNX test failed or model input is unsupported for generic smoke inference."
+                    modelTestStatus = when {
+                        result == null -> "ONNX chat test failed to load the model or start inference."
+                        result.success -> "ONNX CHAT READY • " + result.accelerator + " • " + result.reason
+                        else -> "ONNX imported, but this graph is not chat-compatible • " + result.reason
                     }
                 }
                 model.format.equals("TFLITE", true) -> {
