@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -168,26 +169,32 @@ private fun AiFusionApp() {
     LaunchedEffect(launchStage) {
         when (launchStage) {
             0 -> {
-                delay(1800L)
+                delay(1050L)
                 launchStage = 1
             }
             1 -> {
-                delay(2400L)
+                delay(1150L)
                 launchStage = 2
             }
         }
     }
 
-    when (launchStage) {
-        0 -> AiFusionLaunchScreen()
-        1 -> AiFusionLoadingScreen()
-        2 -> AiFusionHomeV3(
-            onNewChat = { launchStage = 3 },
-            onOpenChat = { launchStage = 3 },
-            onOpenEngine = { launchStage = 3 },
-            onOpenResearch = { launchStage = 3 }
-        )
-        else -> AiFusionMainApp()
+    Crossfade(
+        targetState = launchStage,
+        animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing),
+        label = "appLaunchTransition"
+    ) { stage ->
+        when (stage) {
+            0 -> AiFusionLaunchScreen()
+            1 -> AiFusionLoadingScreen()
+            2 -> AiFusionHomeV3(
+                onNewChat = { launchStage = 3 },
+                onOpenChat = { launchStage = 3 },
+                onOpenEngine = { launchStage = 3 },
+                onOpenResearch = { launchStage = 3 }
+            )
+            else -> AiFusionMainApp()
+        }
     }
 }
 
@@ -246,16 +253,6 @@ private fun AiFusionLaunchScreen() {
 
 @Composable
 private fun AiFusionLoadingScreen() {
-    val transition = rememberInfiniteTransition(label = "loadingPulse")
-    val progress by transition.animateFloat(
-        initialValue = 0.28f,
-        targetValue = 0.94f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "loadingProgress"
-    )
     Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF080D18)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 28.dp),
@@ -273,27 +270,26 @@ private fun AiFusionLoadingScreen() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Connecting local intelligence…",
+                text = "Preparing your assistant experience",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF7A8FAE)
             )
             Spacer(modifier = Modifier.height(30.dp))
             androidx.compose.material3.LinearProgressIndicator(
-                progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(8.dp)),
                 color = Color(0xFF33D1FA),
                 trackColor = Color(0xFF202F47)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "INITIALIZING NEURAL CORE",
+                text = "PREPARING CHAT INTERFACE",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF33D1FA),
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(18.dp))
             Text(
-                text = "Chat Core 3.0  •  Smart Device Engine",
+                text = "Chat Core 3.0  •  Local model checked when chat starts",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF7A8FAE)
             )
