@@ -185,7 +185,7 @@ object OnnxInferenceEngine {
             )
             inputTensor.use { tensor ->
                 session.run(mapOf(input.key to tensor)).use { result ->
-                    val outputTensor = result.get(output.key) as? OnnxTensor
+                    val outputTensor = result.get(output.key).orElse(null) as? OnnxTensor
                         ?: return@withContext OnnxChatAttempt(null, "CPU", "Output ONNX tidak dapat dibaca sebagai tensor.")
                     val generated = flattenStringOutput(outputTensor.value).trim()
                     if (generated.isBlank()) {
