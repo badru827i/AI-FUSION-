@@ -106,6 +106,35 @@ suspend fun generateLocalReply(
                         modelName = selected.name
                     )
                 }
+                val onnxAlternative = models.asSequence()
+                    .filter { it.format.equals("ONNX", ignoreCase = true) }
+                    .minByOrNull { it.sizeBytes.takeIf { size -> size > 0L } ?: Long.MAX_VALUE }
+                if (onnxAlternative != null) {
+                    val onnxAttempt = runCatching {
+                        OnnxInferenceEngine.generateChat(
+                            context = context,
+                            model = onnxAlternative,
+                            prompt = prompt,
+                            capabilities = capabilities
+                        )
+                    }.getOrNull()
+                    if (onnxAttempt?.success == true) {
+                        return ChatCoreResult(
+                            answer = onnxAttempt.text.orEmpty(),
+                            engine = "ONNX Runtime • " + onnxAttempt.accelerator,
+                            modelName = onnxAlternative.name,
+                            warning = "GGUF tidak dapat digunakan; Router beralih ke ONNX."
+                        )
+                    }
+                    val warning = "GGUF tidak dapat menjana jawapan; ONNX alternatif juga tidak serasi: " +
+                        (onnxAttempt?.reason ?: "inferens gagal.")
+                    return ChatCoreResult(
+                        answer = fallbackAnswer(query, capabilities, network, models.size),
+                        engine = "Local fallback",
+                        modelName = selected.name,
+                        warning = warning
+                    )
+                }
                 return ChatCoreResult(
                     answer = fallbackAnswer(query, capabilities, network, models.size),
                     engine = "Local fallback",
