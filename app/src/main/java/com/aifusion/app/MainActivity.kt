@@ -14,6 +14,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -86,6 +92,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -150,9 +161,229 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AiFusionApp() {
+    var launchStage by rememberSaveable { mutableStateOf(0) }
+
+    LaunchedEffect(launchStage) {
+        if (launchStage == 1) {
+            delay(1700L)
+            launchStage = 2
+        }
+    }
+
+    when (launchStage) {
+        0 -> AiFusionLaunchScreen(onStart = { launchStage = 1 })
+        1 -> AiFusionLoadingScreen()
+        else -> AiFusionMainApp()
+    }
+}
+
+@Composable
+private fun AiFusionLaunchScreen(onStart: () -> Unit) {
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF080D18)) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.weight(0.7f))
+            NeuronFusionMark(modifier = Modifier.size(220.dp))
+            Spacer(modifier = Modifier.height(22.dp))
+            Text(
+                text = "AI-FUSION",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFEAF6FF)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "YOUR PERSONAL AI, REIMAGINED",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFF33D1FA),
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = "One assistant. A world of possibilities.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF7A8FAE)
+            )
+            Spacer(modifier = Modifier.weight(0.8f))
+            Button(
+                onClick = onStart,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF33D1FA),
+                    contentColor = Color(0xFF080D18)
+                )
+            ) {
+                Text("TAP TO START", fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = "LOCAL-FIRST  •  SMART  •  READY",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF7A8FAE)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiFusionLoadingScreen() {
+    val transition = rememberInfiniteTransition(label = "loadingPulse")
+    val progress by transition.animateFloat(
+        initialValue = 0.28f,
+        targetValue = 0.94f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "loadingProgress"
+    )
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF080D18)) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.weight(0.65f))
+            NeuronFusionMark(modifier = Modifier.size(220.dp))
+            Spacer(modifier = Modifier.height(22.dp))
+            Text(
+                text = "Waking up neural network",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFEAF6FF)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Connecting local intelligence…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF7A8FAE)
+            )
+            Spacer(modifier = Modifier.height(30.dp))
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(8.dp)),
+                color = Color(0xFF33D1FA),
+                trackColor = Color(0xFF202F47)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "INITIALIZING NEURAL CORE",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF33D1FA),
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = "Chat Core 3.0  •  Smart Device Engine",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF7A8FAE)
+            )
+            Spacer(modifier = Modifier.weight(0.9f))
+            Text(
+                text = "LOCAL-FIRST  •  DEVICE OPTIMIZATION",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF7A8FAE)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NeuronFusionMark(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "neuronNetwork")
+    val pulse by transition.animateFloat(
+        initialValue = 0.72f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(950, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "neuronPulse"
+    )
+    val rotation by transition.animateFloat(
+        initialValue = -3f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "neuronRotation"
+    )
+    Canvas(modifier = modifier) {
+        val cyan = Color(0xFF33D1FA)
+        val white = Color(0xFFEAFBFF)
+        val c = Offset(size.width / 2f, size.height / 2f)
+        val scale = size.minDimension / 220f
+        val points = listOf(
+            Offset(0.50f, 0.50f), Offset(0.28f, 0.24f), Offset(0.12f, 0.34f),
+            Offset(0.72f, 0.22f), Offset(0.88f, 0.34f), Offset(0.84f, 0.56f),
+            Offset(0.91f, 0.75f), Offset(0.69f, 0.80f), Offset(0.55f, 0.92f),
+            Offset(0.28f, 0.76f), Offset(0.11f, 0.66f), Offset(0.16f, 0.50f),
+            Offset(0.42f, 0.10f), Offset(0.42f, 0.90f), Offset(0.74f, 0.10f)
+        ).map { Offset(it.x * size.width, it.y * size.height) }
+        val links = listOf(
+            0 to 1, 1 to 2, 0 to 3, 3 to 4, 0 to 5, 5 to 6,
+            0 to 7, 7 to 8, 0 to 9, 9 to 10, 0 to 11, 1 to 12,
+            3 to 14, 9 to 13, 11 to 2, 5 to 4, 7 to 9
+        )
+        rotate(rotation, pivot = c) {
+            links.forEachIndexed { index, pair ->
+                drawLine(
+                    color = cyan.copy(alpha = if (index % 3 == 0) 0.9f else 0.52f),
+                    start = points[pair.first],
+                    end = points[pair.second],
+                    strokeWidth = 1.5f * scale
+                )
+            }
+            points.forEachIndexed { index, point ->
+                val radius = if (index == 0) 5.2f else if (index % 3 == 0) 4f else 3f
+                drawCircle(
+                    color = cyan.copy(alpha = pulse),
+                    radius = radius * scale * (if (index == 0) 1.12f else 1f),
+                    center = point
+                )
+                drawCircle(
+                    color = white.copy(alpha = if (index == 0) 0.95f else 0.72f),
+                    radius = (radius * 0.36f) * scale,
+                    center = point
+                )
+            }
+            drawCircle(
+                color = cyan.copy(alpha = 0.13f * pulse),
+                radius = 48f * scale,
+                center = c,
+                style = Stroke(width = 2f * scale)
+            )
+            drawCircle(
+                color = cyan.copy(alpha = 0.25f * pulse),
+                radius = 61f * scale,
+                center = c,
+                style = Stroke(width = 1.2f * scale)
+            )
+        }
+        // Fusion spark in the center
+        val spark = Path()
+        spark.moveTo(c.x + 3f * scale, c.y - 24f * scale)
+        spark.lineTo(c.x - 13f * scale, c.y + 1f * scale)
+        spark.lineTo(c.x - 2f * scale, c.y + 1f * scale)
+        spark.lineTo(c.x - 5f * scale, c.y + 22f * scale)
+        spark.lineTo(c.x + 14f * scale, c.y - 7f * scale)
+        spark.lineTo(c.x + 2f * scale, c.y - 7f * scale)
+        spark.close()
+        drawPath(spark, color = cyan.copy(alpha = pulse))
+        drawPath(spark, color = white.copy(alpha = 0.9f), style = Stroke(width = 1.1f * scale))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AiFusionMainApp() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
