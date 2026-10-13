@@ -66,7 +66,7 @@ object MiniServerClient {
         if (baseUrl.isBlank() || token.isBlank()) return "OPPO helper belum dikonfigurasi."
         val normalized = baseUrl.trim().trimEnd('/')
         return try {
-            val payload = org.json.JSONObject().put("message", message).toString()
+            val payload = org.json.JSONObject().put("message", message).toString() + "\n"
             val connection = (URL(normalized + "/api/v1/chat").openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = 2500
