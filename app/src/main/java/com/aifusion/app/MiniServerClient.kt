@@ -57,4 +57,45 @@ object MiniServerClient {
             connection.disconnect()
         }
     }
+    /**
+     * Sends the user's prompt to the authenticated OPPO helper endpoint.
+     * The helper currently acknowledges receipt; inference stays on the A27.
+     * Call from Dispatchers.IO.
+     */
+    fun handoffChat(baseUrl: String, token: String, message: String): String {
+        if (baseUrl.isBlank() || token.isBlank()) return "OPPO helper belum dikonfigurasi."
+        val normalized = baseUrl.trim().trimEnd('/')
+        return try {
+            val payload = org.json.JSONObject().put("message", message).toString()
+            val connection = (URL(normalized + "/api/v1/chat").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 2500
+                readTimeout = 2500
+                doOutput = true
+                useCaches = false
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                setRequestProperty("X-AI-FUSION-Token", token)
+                setFixedLengthStreamingMode(payload.toByteArray(Charsets.UTF_8).size)
+            }
+            try {
+                connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+                val code = connection.responseCode
+                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+                if (code == 200 && body.contains("\"accepted\":true")) {
+                    "OPPO helper menerima mesej • jawapan AI dijana pada A27"
+                } else if (code == 404) {
+                    "Mini Server perlu dikemas kini untuk endpoint chat."
+                } else {
+                    "OPPO helper tidak tersedia (HTTP $code); jawapan dijana secara lokal."
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (_: Exception) {
+            "OPPO helper tidak dapat dicapai; jawapan dijana secara lokal."
+        }
+    }
+
 }
