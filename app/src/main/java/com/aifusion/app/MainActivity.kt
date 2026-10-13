@@ -446,6 +446,17 @@ private fun AiFusionMainApp() {
     var showSettingsPassword by rememberSaveable { mutableStateOf(false) }
     var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
     var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
+    val miniServerPrefs = remember(context) {
+        context.getSharedPreferences("ai_fusion_mini_server", android.content.Context.MODE_PRIVATE)
+    }
+    var miniServerUrl by rememberSaveable {
+        mutableStateOf(miniServerPrefs.getString("base_url", "").orEmpty())
+    }
+    var miniServerToken by rememberSaveable {
+        mutableStateOf(miniServerPrefs.getString("token", "").orEmpty())
+    }
+    var miniServerStatus by rememberSaveable { mutableStateOf("Belum diuji") }
+    var testingMiniServer by remember { mutableStateOf(false) }
     // OAuth client ID is injected at build time from the GitHub Actions secret.
     // It is intentionally not editable or displayed in the app UI.
     val googlePrefs = remember(context) { context.getSharedPreferences("ai_fusion_google", android.content.Context.MODE_PRIVATE) }
@@ -1286,6 +1297,31 @@ private fun AiFusionMainApp() {
 
                 AppScreen.SETTINGS -> SettingsScreen(
                     modifier = Modifier.padding(padding),
+                    miniServerUrl = miniServerUrl,
+                    miniServerToken = miniServerToken,
+                    miniServerStatus = miniServerStatus,
+                    testingMiniServer = testingMiniServer,
+                    onMiniServerUrlChange = { miniServerUrl = it },
+                    onMiniServerTokenChange = { miniServerToken = it },
+                    onSaveMiniServer = {
+                        miniServerUrl = miniServerUrl.trim().trimEnd('/')
+                        miniServerToken = miniServerToken.trim()
+                        miniServerPrefs.edit()
+                            .putString("base_url", miniServerUrl)
+                            .putString("token", miniServerToken)
+                            .apply()
+                        miniServerStatus = "Tetapan Mini Server disimpan pada telefon ini."
+                    },
+                    onTestMiniServer = {
+                        scope.launch {
+                            testingMiniServer = true
+                            miniServerStatus = "Menguji sambungan OPPO…"
+                            miniServerStatus = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                MiniServerClient.test(miniServerUrl.trim().trimEnd('/'), miniServerToken.trim())
+                            }
+                            testingMiniServer = false
+                        }
+                    },
                     aiApiKey = aiApiKey,
                     aiModel = aiModel,
                     onAiApiKeyChange = { aiApiKey = it },
@@ -1900,6 +1936,14 @@ private fun Composer(
 @Composable
 private fun SettingsScreen(
     modifier: Modifier,
+    miniServerUrl: String,
+    miniServerToken: String,
+    miniServerStatus: String,
+    testingMiniServer: Boolean,
+    onMiniServerUrlChange: (String) -> Unit,
+    onMiniServerTokenChange: (String) -> Unit,
+    onSaveMiniServer: () -> Unit,
+    onTestMiniServer: () -> Unit,
     aiApiKey: String,
     aiModel: String,
     onAiApiKeyChange: (String) -> Unit,
@@ -1917,6 +1961,61 @@ private fun SettingsScreen(
         modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Card(
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            )
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text("AI-FUSION Mini Server • OPPO", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Sambungkan A27 ke Mini Server melalui hotspot/Wi-Fi yang sama. Masukkan alamat API daripada aplikasi Mini Server di OPPO dan tokennya.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = miniServerUrl,
+                    onValueChange = onMiniServerUrlChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Alamat API OPPO") },
+                    placeholder = { Text("http://192.168.x.x:8765") }
+                )
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = miniServerToken,
+                    onValueChange = onMiniServerTokenChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("Token API Mini Server") },
+                    placeholder = { Text("Salin daripada aplikasi OPPO") }
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onSaveMiniServer) { Text("Simpan") }
+                    TextButton(onClick = onTestMiniServer, enabled = !testingMiniServer) {
+                        Text(if (testingMiniServer) "Menguji…" else "Uji sambungan")
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    miniServerStatus,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Sambungan ini menguji API tempatan sahaja; ia belum menjana jawapan AI melalui OPPO. Gunakan hanya pada hotspot/Wi-Fi yang dipercayai.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         Card(
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(
