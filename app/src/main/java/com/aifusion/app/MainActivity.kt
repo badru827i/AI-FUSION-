@@ -745,8 +745,8 @@ private fun AiFusionMainApp() {
             localNeural ?: local
         }
 
-        // Send a lightweight authenticated handoff to OPPO when configured.
-        // OPPO acknowledges receipt; the actual model answer remains on this phone.
+        // Send a lightweight authenticated handoff to Mini Server when configured.
+        // Mini Server currently acknowledges receipt; model inference remains on this phone.
         val miniHelperStatus = if (miniServerUrl.isNotBlank() && miniServerToken.isNotBlank()) {
             withContext(kotlinx.coroutines.Dispatchers.IO) {
                 MiniServerClient.handoffChat(miniServerUrl, miniServerToken, clean)
@@ -770,8 +770,8 @@ private fun AiFusionMainApp() {
             localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
             else -> "Local AI • " + plan.units.joinToString("+")
         }
-        status = if (miniHelperStatus.startsWith("OPPO helper menerima")) {
-            "$answerRoute • OPPO helper connected"
+        status = if (miniHelperStatus.startsWith("Mini Server menerima mesej")) {
+            "$answerRoute • Mini Server connected"
         } else answerRoute
         saveCurrent()
     }
@@ -1326,7 +1326,7 @@ private fun AiFusionMainApp() {
                     onTestMiniServer = {
                         scope.launch {
                             testingMiniServer = true
-                            miniServerStatus = "Menguji sambungan OPPO…"
+                            miniServerStatus = "Menguji API + WebSocket realtime…"
                             miniServerStatus = withContext(kotlinx.coroutines.Dispatchers.IO) {
                                 MiniServerClient.test(miniServerUrl.trim().trimEnd('/'), miniServerToken.trim())
                             }
@@ -2035,10 +2035,10 @@ private fun SettingsScreen(
             )
         ) {
             Column(Modifier.padding(18.dp)) {
-                Text("AI-FUSION Mini Server • OPPO", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("AI-FUSION Mini Server", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Sambungkan A27 ke Mini Server melalui hotspot/Wi-Fi yang sama. Masukkan alamat API daripada aplikasi Mini Server di OPPO dan tokennya.",
+                    "Sambungkan telefon ini ke Mini Server melalui hotspot/Wi-Fi yang sama. Masukkan alamat API dan token yang dipaparkan dalam aplikasi Mini Server.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2048,7 +2048,7 @@ private fun SettingsScreen(
                     onValueChange = onMiniServerUrlChange,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text("Alamat API OPPO") },
+                    label = { Text("Alamat API Mini Server") },
                     placeholder = { Text("http://192.168.x.x:8765") }
                 )
                 Spacer(Modifier.height(10.dp))
