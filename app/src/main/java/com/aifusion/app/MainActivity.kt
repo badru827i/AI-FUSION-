@@ -1709,15 +1709,50 @@ private fun ChatHome(
 @Composable
 private fun HardwareStatusStrip(sample: HardwareSample) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 2.dp),
-        horizontalArrangement = Arrangement.Start,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("CPU " + sample.cpuPercent.coerceIn(0f, 100f).toInt() + "%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.size(10.dp))
-        Text("GPU " + (sample.gpuPercent ?: 0f).coerceIn(0f, 100f).toInt() + "%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.size(10.dp))
-        Text("NPU " + (sample.npuPercent ?: 0f).coerceIn(0f, 100f).toInt() + "%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        @Composable
+        fun Metric(label: String, value: Int) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "$value%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+        Metric("CPU", sample.cpuPercent.coerceIn(0f, 100f).toInt())
+        Metric("GPU", (sample.gpuPercent ?: 0f).coerceIn(0f, 100f).toInt())
+        Metric("NPU", (sample.npuPercent ?: 0f).coerceIn(0f, 100f).toInt())
+        Spacer(Modifier.weight(1f))
+        Text(
+            "LOCAL-FIRST",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
