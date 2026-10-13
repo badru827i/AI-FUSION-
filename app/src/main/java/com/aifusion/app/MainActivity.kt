@@ -745,6 +745,14 @@ private fun AiFusionMainApp() {
             localNeural ?: local
         }
 
+        // Send a lightweight authenticated handoff to OPPO when configured.
+        // OPPO acknowledges receipt; the actual model answer remains on this phone.
+        val miniHelperStatus = if (miniServerUrl.isNotBlank() && miniServerToken.isNotBlank()) {
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                MiniServerClient.handoffChat(miniServerUrl, miniServerToken, clean)
+            }
+        } else ""
+
         val words = response.split(" ")
         var partial = ""
         words.forEachIndexed { index, word ->
@@ -755,13 +763,16 @@ private fun AiFusionMainApp() {
         }
 
         generating = false
-        status = when {
+        val answerRoute = when {
             onlineUsed -> "AI Assistant • web/remote • " + aiModel.trim()
             onlineFailed && localNeural != null -> "Remote unavailable • Local GGUF"
             onlineFailed -> "Remote unavailable • Local fallback"
             localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
             else -> "Local AI • " + plan.units.joinToString("+")
         }
+        status = if (miniHelperStatus.startsWith("OPPO helper menerima")) {
+            "$answerRoute • OPPO helper connected"
+        } else answerRoute
         saveCurrent()
     }
 
