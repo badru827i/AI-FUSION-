@@ -163,33 +163,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AiFusionApp() {
-    var launchStage by rememberSaveable { mutableStateOf(0) }
-
-    // Automatic launch sequence: splash → neural loading → chat.
-    LaunchedEffect(launchStage) {
-        when (launchStage) {
-            0 -> {
-                delay(1800L)
-                launchStage = 1
-            }
-            1 -> {
-                delay(2400L)
-                launchStage = 2
-            }
-        }
-    }
-
-    when (launchStage) {
-        0 -> AiFusionLaunchScreen()
-        1 -> AiFusionLoadingScreen()
-        2 -> AiFusionHomeV3(
-            onNewChat = { launchStage = 3 },
-            onOpenChat = { launchStage = 3 },
-            onOpenEngine = { launchStage = 3 },
-            onOpenResearch = { launchStage = 3 }
-        )
-        else -> AiFusionMainApp()
-    }
+    // Open directly into the working chat; keep feature navigation inside the chat UI.
+    AiFusionMainApp()
 }
 
 @Composable
