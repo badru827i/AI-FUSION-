@@ -21,8 +21,9 @@ object Local3DBuilder {
                 )
             )
             "cylinder" in clean || "silinder" in clean -> cylinder()
-            "robot" in clean || "android" in clean -> robot()
+            // Match the more specific phrase before the general robot keyword.
             "robot arm" in clean || "lengan robot" in clean -> robotArm()
+            "robot" in clean || "android" in clean -> robot()
             "drone" in clean || "quadcopter" in clean -> drone()
             "bridge" in clean || "jambatan" in clean || "struktur" in clean || "engineering" in clean || "kejuruteraan" in clean || "cad" in clean -> engineeringRig()
             "car" in clean || "kereta" in clean || "automotif" in clean -> carBody()
