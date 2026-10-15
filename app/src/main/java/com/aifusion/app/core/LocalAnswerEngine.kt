@@ -1,8 +1,8 @@
 package com.aifusion.app.core
 
 /**
- * Local-first answer layer. It never sends the question to a server.
- * Imported model execution can be connected to a compatible runtime later.
+ * Honest no-model fallback. This is deliberately not presented as generative AI:
+ * genuine chat must come from a compatible local GGUF model or a configured API.
  */
 object LocalAnswerEngine {
     fun answer(
@@ -11,23 +11,12 @@ object LocalAnswerEngine {
         network: NetworkState,
         modelCount: Int
     ): String {
-        val q = query.lowercase()
-        val topic = when {
-            "3d" in q || "model 3d" in q -> "3D Design lokal boleh bina dan paparkan OBJ tanpa server."
-            "research" in q || "kajian" in q -> "Research Core boleh pecahkan soalan dan simpan hasil secara lokal."
-            "ram" in q || "gpu" in q || "npu" in q || "cpu" in q ->
-                "Hardware Monitor membaca RAM/CPU dan GPU jika tersedia; NPU tidak dipalsukan jika tiada API umum."
-            "4g" in q || "5g" in q || "network" in q || "internet" in q ->
-                "Network Guardian mengesan Wi-Fi, 4G/5G dan status metered."
-            "onnx" in q || "tflite" in q || "model" in q ->
-                "Model lokal yang diimport disimpan pada telefon; runtime bergantung pada format/model serasi."
-            else -> "AI-FUSION menggunakan local-first routing dan tidak memerlukan Railway untuk jawapan asas."
+        val language = detectLanguage(query)
+        val message = when (language) {
+            ChatLanguage.BM -> "AI chat belum mempunyai model yang boleh menjana jawapan sebenar. Import model GGUF yang serasi dalam Model Manager, atau masukkan API key dalam Settings untuk mengaktifkan AI online. Model ONNX/TFLite biasa hanya boleh diuji sebagai inferens; ia tidak automatik menjadi chatbot tanpa tokenizer dan runtime generatif yang serasi."
+            ChatLanguage.ENGLISH -> "AI chat does not currently have a model capable of generating a real answer. Import a compatible GGUF model in Model Manager, or configure an API key in Settings to enable online AI. A generic ONNX/TFLite model is not automatically a chatbot without a compatible tokenizer and generative runtime."
+            ChatLanguage.MIXED -> "AI chat belum ada model generatif yang serasi. Import GGUF dalam Model Manager atau set API key di Settings. ONNX/TFLite sahaja tidak automatik menjadi chatbot tanpa tokenizer dan generative runtime yang sepadan."
         }
-        val compute = when {
-            capabilities.npuAvailable -> "CPU + GPU/NPU jika disokong"
-            capabilities.gpuApi.contains("GPU", true) -> "CPU + GPU"
-            else -> "CPU"
-        }
-        return "Jawapan lokal: $topic Compute: $compute. Model lokal: $modelCount. Network: ${NetworkGuardian.label(network)}."
+        return message + " Status: ${if (modelCount > 0) "$modelCount model diimport" else "tiada model diimport"}; ${NetworkGuardian.label(network)}."
     }
 }
