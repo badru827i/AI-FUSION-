@@ -652,7 +652,17 @@ private fun AiFusionMainApp() {
         // Every non-chat tool is executed through the central 52-tool router.
         // Model/file-dependent tools report a truthful capability status when
         // their required input/runtime has not been supplied.
+        val modelBackedTools = setOf(
+            FusionToolRouter.Tool.CODE,
+            FusionToolRouter.Tool.CODE_DEBUG,
+            FusionToolRouter.Tool.TRANSLATE,
+            FusionToolRouter.Tool.SUMMARIZE,
+            FusionToolRouter.Tool.CAD_PLAN,
+            FusionToolRouter.Tool.SOURCE_COMPARE
+        )
+
         if (routedTool != FusionToolRouter.Tool.CHAT &&
+            routedTool !in modelBackedTools &&
             routedTool != FusionToolRouter.Tool.IMAGE_CREATE &&
             routedTool != FusionToolRouter.Tool.VIDEO_CREATE) {
             generating = true
@@ -728,9 +738,27 @@ private fun AiFusionMainApp() {
         var localCoreResult: ChatCoreResult? = null
 
         suspend fun runLocalChatCore(): ChatCoreResult {
+            val conversationForChat = messages.filter { it.text.isNotBlank() }.takeLast(24).toMutableList()
+            val routedIntent = FusionToolRouter.detectTool(clean)
+            val taskInstruction = when (routedIntent) {
+                FusionToolRouter.Tool.CODE -> "Act as the coding skill. Produce working code, state assumptions, and include how to run or test it. User task: "
+                FusionToolRouter.Tool.CODE_DEBUG -> "Act as the code-debugging skill. Diagnose the cause, show the corrected code, and explain the fix. User task: "
+                FusionToolRouter.Tool.TRANSLATE -> "Act as a translator. Translate the user's text faithfully and preserve meaning and tone. User task: "
+                FusionToolRouter.Tool.SUMMARIZE -> "Act as a summarization skill. Extract the main points without inventing facts. User task: "
+                FusionToolRouter.Tool.CAD_PLAN -> "Act as a CAD/engineering planning assistant. Give dimensions, constraints, assumptions, and validation steps; do not claim a design is safety-certified. User task: "
+                FusionToolRouter.Tool.SOURCE_COMPARE -> "Compare the supplied sources or claims, distinguish evidence from uncertainty, and do not claim to have browsed unless sources are present. User task: "
+                else -> ""
+            }
+            if (taskInstruction.isNotBlank()) {
+                val lastUserIndex = conversationForChat.indexOfLast { it.fromUser }
+                if (lastUserIndex >= 0) {
+                    val last = conversationForChat[lastUserIndex]
+                    conversationForChat[lastUserIndex] = last.copy(text = taskInstruction + clean)
+                }
+            }
             val result = generateLocalReply(
                 context = context,
-                conversation = messages.filter { it.text.isNotBlank() }.takeLast(24),
+                conversation = conversationForChat,
                 models = models,
                 capabilities = capabilities,
                 network = network
