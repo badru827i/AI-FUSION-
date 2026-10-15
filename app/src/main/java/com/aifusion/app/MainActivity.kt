@@ -673,23 +673,21 @@ private fun AiFusionMainApp() {
             modelCount = models.size
         )
 
-        // Local-first: answer on-device first. Remote AI is only an optional
-        // fallback when the user has configured an API key and the local
-        // layer cannot provide a useful answer.
+        // Choose a real chat backend before deciding whether to call remote AI.
+        // A configured API key must make ordinary chat work too, not only queries
+        // containing words such as "search" or "latest". Prefer local GGUF when present;
+        // use the remote model for all chat when no compatible local chat model exists.
         var onlineUsed = false
         var onlineFailed = false
+        val modelRoute = ModelChatRouter.route(models, capabilities)
+        val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
+        val asksForWeb = listOf("terkini", "latest", "current", "cari", "search", "web")
+            .any { clean.contains(it, ignoreCase = true) }
         val shouldTryRemote = aiApiKey.isNotBlank() &&
-            (clean.contains("terkini", true) ||
-             clean.contains("latest", true) ||
-             clean.contains("current", true) ||
-             clean.contains("cari", true) ||
-             clean.contains("search", true) ||
-             clean.contains("web", true))
+            (localGgufModel == null || asksForWeb)
 
         // Real local inference when a GGUF model has been imported.
         // Current GGUF runtime is CPU/NEON on arm64-v8a; unsupported phones safely fall back.
-        val modelRoute = ModelChatRouter.route(models, capabilities)
-        val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
         val localNeural = if (!shouldTryRemote && localGgufModel != null) {
             runCatching {
                 LocalLlamaEngine.generate(
@@ -743,7 +741,7 @@ private fun AiFusionMainApp() {
             onlineFailed && localNeural != null -> "Remote unavailable • Local GGUF"
             onlineFailed -> "Remote unavailable • Local fallback"
             localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
-            else -> "Local AI • " + plan.units.joinToString("+")
+            else -> "Fallback • no compatible chat model • import GGUF or configure API key"
         }
         status = if (miniHelperStatus.startsWith("Mini Server menerima mesej")) {
             "$answerRoute • Mini Server connected"
