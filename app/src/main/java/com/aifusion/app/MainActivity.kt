@@ -421,6 +421,7 @@ private fun AiFusionMainApp() {
     var showSettingsPassword by rememberSaveable { mutableStateOf(false) }
     var aiApiKey by remember { mutableStateOf(apiKeyStore.getApiKey()) }
     var aiModel by rememberSaveable { mutableStateOf(apiKeyStore.getModel()) }
+    var aiSettingsStatus by rememberSaveable { mutableStateOf("") }
     val miniServerPrefs = remember(context) {
         context.getSharedPreferences("ai_fusion_mini_server", android.content.Context.MODE_PRIVATE)
     }
@@ -428,7 +429,11 @@ private fun AiFusionMainApp() {
         mutableStateOf(miniServerPrefs.getString("base_url", "").orEmpty())
     }
     var miniServerToken by rememberSaveable {
-        mutableStateOf(miniServerPrefs.getString("token", "").orEmpty())
+        mutableStateOf(
+            apiKeyStore.getMiniServerToken().ifBlank {
+                miniServerPrefs.getString("token", "").orEmpty()
+            }
+        )
     }
     var miniServerStatus by rememberSaveable { mutableStateOf("Belum diuji") }
     var testingMiniServer by remember { mutableStateOf(false) }
@@ -451,6 +456,22 @@ private fun AiFusionMainApp() {
     LaunchedEffect(Unit) {
         ResourceManager.enforceCacheLimit(context)
         resourceStatus = ResourceManager.status(context)
+
+        // Migrate any previously stored plain-text Mini Server token to Keystore-backed encryption.
+        val secureToken = apiKeyStore.getMiniServerToken()
+        val legacyToken = miniServerPrefs.getString("token", "").orEmpty()
+        if (secureToken.isNotBlank()) {
+            miniServerToken = secureToken
+            miniServerPrefs.edit().remove("token").apply()
+        } else if (legacyToken.isNotBlank()) {
+            if (apiKeyStore.setMiniServerToken(legacyToken)) {
+                miniServerToken = legacyToken
+                miniServerPrefs.edit().remove("token").apply()
+            } else {
+                miniServerToken = legacyToken
+                miniServerStatus = "Token lama belum dapat dienkripsi. Tekan Simpan untuk cuba lagi."
+            }
+        }
     }
 
     val tts = remember(context) {
@@ -679,6 +700,7 @@ private fun AiFusionMainApp() {
         // use the remote model for all chat when no compatible local chat model exists.
         var onlineUsed = false
         var onlineFailed = false
+        var remoteErrorMessage = ""
         val modelRoute = ModelChatRouter.route(models, capabilities)
         val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
         val asksForWeb = listOf("terkini", "latest", "current", "cari", "search", "web")
@@ -710,8 +732,12 @@ private fun AiFusionMainApp() {
                 )
                 onlineUsed = true
                 answer
-            } catch (_: Exception) {
+            } catch (error: Exception) {
                 onlineFailed = true
+                remoteErrorMessage = error.message.orEmpty()
+                    .replace('\n', ' ')
+                    .replace('\r', ' ')
+                    .take(120)
                 localNeural ?: local
             }
         } else {
@@ -737,9 +763,11 @@ private fun AiFusionMainApp() {
 
         generating = false
         val answerRoute = when {
-            onlineUsed -> "AI Assistant • web/remote • " + aiModel.trim()
-            onlineFailed && localNeural != null -> "Remote unavailable • Local GGUF"
-            onlineFailed -> "Remote unavailable • Local fallback"
+            onlineUsed -> "AI Assistant • OpenAI API • " + aiModel.trim()
+            onlineFailed && localNeural != null ->
+                "OpenAI unavailable" + remoteErrorMessage.takeIf { it.isNotBlank() }?.let { " • $it" }.orEmpty() + " • Local GGUF"
+            onlineFailed ->
+                "OpenAI unavailable" + remoteErrorMessage.takeIf { it.isNotBlank() }?.let { " • $it" }.orEmpty() + " • Local fallback"
             localNeural != null -> "Local GGUF • CPU/NEON • " + localGgufModel?.name.orEmpty()
             else -> "Fallback • no compatible chat model • import GGUF or configure API key"
         }
@@ -1290,11 +1318,16 @@ private fun AiFusionMainApp() {
                     onSaveMiniServer = {
                         miniServerUrl = miniServerUrl.trim().trimEnd('/')
                         miniServerToken = miniServerToken.trim()
+                        val tokenSaved = apiKeyStore.setMiniServerToken(miniServerToken)
                         miniServerPrefs.edit()
                             .putString("base_url", miniServerUrl)
-                            .putString("token", miniServerToken)
+                            .remove("token")
                             .apply()
-                        miniServerStatus = "Tetapan Mini Server disimpan pada telefon ini."
+                        miniServerStatus = if (tokenSaved) {
+                            "Tetapan Mini Server disimpan. Token dienkripsi pada telefon ini."
+                        } else {
+                            "Gagal menyimpan token dengan selamat. Semak ruang storan dan cuba lagi."
+                        }
                     },
                     onTestMiniServer = {
                         scope.launch {
@@ -1308,17 +1341,28 @@ private fun AiFusionMainApp() {
                     },
                     aiApiKey = aiApiKey,
                     aiModel = aiModel,
+                    aiSettingsStatus = aiSettingsStatus,
                     onAiApiKeyChange = { aiApiKey = it },
                     onAiModelChange = { aiModel = it },
                     onSaveAiSettings = {
-                        apiKeyStore.setApiKey(aiApiKey.trim())
+                        val keySaved = apiKeyStore.setApiKey(aiApiKey.trim())
                         apiKeyStore.setModel(aiModel.trim())
                         aiApiKey = apiKeyStore.getApiKey()
                         aiModel = apiKeyStore.getModel()
+                        aiSettingsStatus = when {
+                            !keySaved -> "Gagal menyimpan API key dengan selamat. Cuba lagi."
+                            aiApiKey.isBlank() -> "API key dikosongkan. Chat menggunakan mod fallback setempat."
+                            else -> "Tetapan disimpan • Model: $aiModel"
+                        }
                     },
                     onClearAiKey = {
-                        apiKeyStore.setApiKey("")
+                        val removed = apiKeyStore.setApiKey("")
                         aiApiKey = ""
+                        aiSettingsStatus = if (removed) {
+                            "API key dibuang. Chat menggunakan mod fallback setempat."
+                        } else {
+                            "Gagal membuang API key daripada storan. Cuba lagi."
+                        }
                     },
                     account = account,
                     googleConfigured = buildClientId.isNotBlank() && buildClientId.contains(".apps.googleusercontent.com"),
@@ -1986,6 +2030,7 @@ private fun SettingsScreen(
     onTestMiniServer: () -> Unit,
     aiApiKey: String,
     aiModel: String,
+    aiSettingsStatus: String,
     onAiApiKeyChange: (String) -> Unit,
     onAiModelChange: (String) -> Unit,
     onSaveAiSettings: () -> Unit,
@@ -2101,6 +2146,14 @@ private fun SettingsScreen(
                     TextButton(onClick = onClearAiKey) {
                         Text("Remove key")
                     }
+                }
+                if (aiSettingsStatus.isNotBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        aiSettingsStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(
