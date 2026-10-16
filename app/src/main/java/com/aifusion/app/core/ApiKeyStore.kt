@@ -14,8 +14,23 @@ import javax.crypto.spec.GCMParameterSpec
 class ApiKeyStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun getApiKey(): String {
-        val stored = prefs.getString(KEY_API, "").orEmpty()
+    fun getApiKey(): String = getSecret(KEY_API)
+
+    /**
+     * Stores the API key encrypted with an Android Keystore AES-GCM key.
+     * Returns false when encryption or persistent storage fails.
+     */
+    fun setApiKey(value: String): Boolean = setSecret(KEY_API, value)
+
+    fun getMiniServerToken(): String = getSecret(KEY_MINI_SERVER_TOKEN)
+
+    /**
+     * Mini Server bearer tokens are secrets too; do not keep them in plain-text preferences.
+     */
+    fun setMiniServerToken(value: String): Boolean = setSecret(KEY_MINI_SERVER_TOKEN, value)
+
+    private fun getSecret(key: String): String {
+        val stored = prefs.getString(key, "").orEmpty()
         if (stored.isBlank()) return ""
         return runCatching {
             val parts = stored.split(':', limit = 2)
@@ -28,20 +43,19 @@ class ApiKeyStore(context: Context) {
         }.getOrDefault("")
     }
 
-    fun setApiKey(value: String) {
+    private fun setSecret(key: String, value: String): Boolean {
         if (value.isBlank()) {
-            prefs.edit().remove(KEY_API).apply()
-            return
+            return prefs.edit().remove(key).commit()
         }
 
-        runCatching {
+        return runCatching {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
             val encrypted = cipher.doFinal(value.toByteArray(StandardCharsets.UTF_8))
             val iv = Base64.encodeToString(cipher.iv, Base64.NO_WRAP)
             val body = Base64.encodeToString(encrypted, Base64.NO_WRAP)
-            prefs.edit().putString(KEY_API, "$iv:$body").apply()
-        }
+            prefs.edit().putString(key, "$iv:$body").commit()
+        }.getOrDefault(false)
     }
 
     fun getModel(): String =
@@ -78,6 +92,7 @@ class ApiKeyStore(context: Context) {
         const val DEFAULT_MODEL = "gpt-6-luna"
         private const val PREFS = "ai_fusion_secure_settings"
         private const val KEY_API = "openai_api_key"
+        private const val KEY_MINI_SERVER_TOKEN = "mini_server_token"
         private const val KEY_MODEL = "openai_model"
         private const val KEYSTORE = "AndroidKeyStore"
         private const val KEY_ALIAS = "ai_fusion_openai_key"
