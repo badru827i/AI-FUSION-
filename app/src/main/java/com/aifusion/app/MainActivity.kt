@@ -474,8 +474,31 @@ private fun AiFusionMainApp() {
         }
     }
 
+    var ttsReady by remember { mutableStateOf(false) }
+    var pendingSpeech by remember { mutableStateOf<String?>(null) }
     val tts = remember(context) {
-        TextToSpeech(context) { }
+        lateinit var engine: TextToSpeech
+        engine = TextToSpeech(context) { initStatus ->
+            if (initStatus == TextToSpeech.SUCCESS) {
+                val malayMalaysia = Locale.forLanguageTag("ms-MY")
+                val malayLanguage = Locale("ms")
+                val malaysiaStatus = engine.isLanguageAvailable(malayMalaysia)
+                val languageStatus = engine.isLanguageAvailable(malayLanguage)
+                val selectedLocale = when {
+                    malaysiaStatus >= TextToSpeech.LANG_AVAILABLE -> malayMalaysia
+                    languageStatus >= TextToSpeech.LANG_AVAILABLE -> malayLanguage
+                    else -> Locale.ENGLISH
+                }
+                val selectedStatus = engine.setLanguage(selectedLocale)
+                if (selectedStatus < TextToSpeech.LANG_AVAILABLE) {
+                    engine.language = Locale.ENGLISH
+                }
+                engine.setSpeechRate(0.96f)
+                engine.setPitch(1.0f)
+                ttsReady = true
+            }
+        }
+        engine
     }
     DisposableEffect(tts) {
         onDispose {
@@ -485,13 +508,48 @@ private fun AiFusionMainApp() {
     }
 
     fun speak(text: String) {
-        val languageResult = tts.setLanguage(Locale.forLanguageTag("ms-MY"))
-        val bm = languageResult == TextToSpeech.LANG_AVAILABLE ||
-            languageResult == TextToSpeech.LANG_COUNTRY_AVAILABLE
-        if (!bm) {
-            tts.language = Locale.ENGLISH
+        val spoken = text
+            .replace(Regex("!\\[([^\\]]*)\\]\\([^)]*\\)"), "$1")
+            .replace(Regex("\\[([^\\]]+)\\]\\([^)]*\\)"), "$1")
+            .replace(Regex("https?://\\S+"), " pautan ")
+            .replace(Regex("(?m)^\\s{0,3}#{1,6}\\s*"), "")
+            .replace(Regex("(?m)^\\s*[-*+]\\s+"), "")
+            .replace(Regex("[*_~]"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (spoken.isBlank()) return
+        if (!ttsReady) {
+            pendingSpeech = spoken
+            return
         }
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ai-fusion-response")
+        val maxLength = TextToSpeech.getMaxSpeechInputLength().coerceAtMost(3500)
+        val chunks = mutableListOf<String>()
+        var remaining = spoken
+        while (remaining.length > maxLength) {
+            var cut = remaining.lastIndexOf(". ", maxLength)
+            if (cut < maxLength / 2) cut = remaining.lastIndexOf(" ", maxLength)
+            if (cut < 1) cut = maxLength
+            val end = cut + if (remaining.getOrNull(cut) == '.') 1 else 0
+            chunks += remaining.substring(0, end).trim()
+            remaining = remaining.substring(end).trim()
+        }
+        if (remaining.isNotBlank()) chunks += remaining
+        chunks.forEachIndexed { index, chunk ->
+            tts.speak(
+                chunk,
+                if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
+                null,
+                "ai-fusion-response-$index"
+            )
+        }
+    }
+
+    LaunchedEffect(ttsReady, pendingSpeech) {
+        val queued = pendingSpeech
+        if (ttsReady && !queued.isNullOrBlank()) {
+            pendingSpeech = null
+            speak(queued)
+        }
     }
 
     fun saveCurrent() {
