@@ -63,6 +63,12 @@ object LocalTextTo3DEngine {
         if (adapter != null && adapter.isReady(context)) {
             return adapter.generate(context, request, outputDirectory)
         }
+        require(request.style == Text3DStyle.MECHANICAL_CAD) {
+            "Mod prosedural kini menyokong Mechanical CAD sahaja; gaya lain memerlukan model generatif setempat."
+        }
+        require(request.texture == Text3DTexture.NONE) {
+            "Mod prosedural kini menyokong tekstur None sahaja; PBR/AI texture memerlukan adapter yang sesuai."
+        }
 
         val manager = context.getSystemService(ActivityManager::class.java)
             ?: error("Pengurus memori Android tidak tersedia.")
@@ -75,7 +81,7 @@ object LocalTextTo3DEngine {
 
         // Honest offline fallback: deterministic geometry, not neural generative inference.
         val prompt = request.prompt.lowercase()
-        val isCar = listOf("car", "kereta", "sport", "spoiler", "automotif").any(prompt::contains)
+        val isCar = listOf("car", "kereta", "sport", "spoiler", "automotif").any { prompt.contains(it) }
         val mesh = Mesh()
         if (isCar) {
             buildCar(mesh, request)
