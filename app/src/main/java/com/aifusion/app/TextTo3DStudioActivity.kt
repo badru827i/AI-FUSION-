@@ -189,7 +189,7 @@ class TextTo3DStudioActivity : ComponentActivity() {
         status.text = "Menyemak RAM dan membina geometri setempat…"
         status.setTextColor(Color.rgb(137, 200, 255))
         val result = runCatching {
-            LocalTextTo3DEngine.generate(this, request, File(cacheDir, "fusion3d"))
+            LocalTextTo3DEngine.generate(this, request, File(filesDir, "3d-projects"))
         }
         result.onSuccess { generated ->
             status.text = "${generated.engineLabel} • ${generated.vertexCount} vertex • ${generated.faceCount} faces\n${generated.notice}"
