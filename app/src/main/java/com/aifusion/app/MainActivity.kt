@@ -1208,6 +1208,11 @@ private fun AiFusionMainApp() {
                         scope.launch { drawerState.close() }
                     }
 
+                    DrawerItem(Icons.Outlined.Visibility, "JARVIS Security") {
+                        context.startActivity(Intent(context, JarvisGuardActivity::class.java))
+                        scope.launch { drawerState.close() }
+                    }
+
                     Spacer(Modifier.weight(1f))
                     HorizontalDivider()
                     Spacer(Modifier.height(10.dp))
