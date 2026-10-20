@@ -10,6 +10,7 @@ import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
@@ -488,6 +489,7 @@ private fun JarvisGuardScreen(
     var modelReady by remember { mutableStateOf(initialModelReady) }
     var ownerRegistered by remember { mutableStateOf(initialOwnerRegistered) }
     var faceVerified by remember { mutableStateOf(false) }
+    var faceVerifiedAt by remember { mutableStateOf(0L) }
     var robotSession by remember { mutableStateOf(false) }
     var robotSecretSaved by remember { mutableStateOf(initialSecretSaved) }
     var endpoint by remember { mutableStateOf(initialEndpoint) }
@@ -497,6 +499,11 @@ private fun JarvisGuardScreen(
         else "Model pengenalan muka belum dipasang. Pengesan muka sahaja tidak boleh mengenali pemilik."
     ) }
     var pendingMode by remember { mutableStateOf(JarvisScanMode.OFF) }
+    fun acceptFaceResult(matched: Boolean) {
+        faceVerified = matched
+        faceVerifiedAt = if (matched) SystemClock.elapsedRealtime() else 0L
+        if (!matched) robotSession = false
+    }
     SideEffect {
         activity.configureUi(
             statusCallback = { status = it },
@@ -509,14 +516,14 @@ private fun JarvisGuardScreen(
     ) { granted ->
         val preview = previewView
         if (granted && preview != null && pendingMode != JarvisScanMode.OFF) {
-            activity.beginScan(preview, pendingMode, { status = it }, { faceVerified = it }, { ownerRegistered = it })
+            activity.beginScan(preview, pendingMode, { status = it }, { acceptFaceResult(it) }, { ownerRegistered = it })
         } else if (!granted) {
             status = "Kebenaran kamera diperlukan untuk pengecaman muka setempat."
         }
     }
 
     fun begin(mode: JarvisScanMode) {
-        faceVerified = false
+        acceptFaceResult(false)
         robotSession = false
         val preview = previewView
         if (preview == null) {
@@ -532,6 +539,17 @@ private fun JarvisGuardScreen(
             activity.beginScan(preview, mode, { status = it }, { faceVerified = it }, { ownerRegistered = it })
         } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    fun beginEnrollment() {
+        if (ownerRegistered) {
+            activity.promptStrongBiometric { success, message ->
+                status = message
+                if (success) begin(JarvisScanMode.ENROLL_OWNER)
+            }
+        } else {
+            begin(JarvisScanMode.ENROLL_OWNER)
         }
     }
 
@@ -572,7 +590,7 @@ private fun JarvisGuardScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = onPickModel) { Text("Import model") }
-                        TextButton(onClick = { begin(JarvisScanMode.ENROLL_OWNER) }, enabled = modelReady) {
+                        TextButton(onClick = { beginEnrollment() }, enabled = modelReady) {
                             Text("Daftar muka")
                         }
                     }
@@ -581,12 +599,18 @@ private fun JarvisGuardScreen(
                             Text("Kenali pemilik")
                         }
                         TextButton(onClick = {
-                            activity.stopScan { status = it }
-                            activity.vault.deleteOwnerTemplate()
-                            ownerRegistered = false
-                            faceVerified = false
-                            robotSession = false
-                            status = "Profil muka setempat dipadam."
+                            activity.promptStrongBiometric { success, message ->
+                                if (success) {
+                                    activity.stopScan { status = it }
+                                    activity.vault.deleteOwnerTemplate()
+                                    ownerRegistered = false
+                                    acceptFaceResult(false)
+                                    robotSession = false
+                                    status = "Profil muka setempat dipadam."
+                                } else {
+                                    status = message
+                                }
+                            }
                         }, enabled = ownerRegistered) {
                             Text("Padam profil")
                         }
@@ -610,8 +634,9 @@ private fun JarvisGuardScreen(
                     )
                     Button(
                         onClick = {
-                            if (!faceVerified) {
-                                status = "Sahkan wajah pemilik dahulu."
+                            if (!faceVerified || SystemClock.elapsedRealtime() - faceVerifiedAt > 30000L) {
+                                acceptFaceResult(false)
+                                status = "Padanan muka luput. Kenali pemilik semula sebelum mengesahkan robot."
                             } else {
                                 activity.promptStrongBiometric { success, message ->
                                     if (!success) {
