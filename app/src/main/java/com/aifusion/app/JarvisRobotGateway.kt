@@ -148,7 +148,7 @@ internal object JarvisRobotGateway {
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(secret, "HmacSHA256"))
         return mac.doFinal(message.toByteArray(StandardCharsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
     private fun safeError(error: Throwable): String {
