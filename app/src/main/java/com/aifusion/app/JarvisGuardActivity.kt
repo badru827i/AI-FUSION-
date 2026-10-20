@@ -222,7 +222,7 @@ class JarvisGuardActivity : FragmentActivity() {
     fun generateRobotKey(): String {
         val bytes = ByteArray(32)
         java.security.SecureRandom().nextBytes(bytes)
-        return bytes.joinToString("") { "%02x".format(it) }
+        return bytes.joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
     private fun bindCamera(previewView: PreviewView) {
