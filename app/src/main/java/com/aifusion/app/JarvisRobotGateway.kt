@@ -122,13 +122,12 @@ internal object JarvisRobotGateway {
         val uri = URI(base)
         val host = uri.host ?: error("Invalid robot address.")
         require(uri.userInfo == null) { "Do not put credentials inside the robot URL." }
-        val localSuffix = host.equals("localhost", true) || host.endsWith(".local", true)
-        val resolved = runCatching { InetAddress.getByName(host) }.getOrNull()
-        val privateAddress = resolved?.let {
+        val resolved = runCatching { InetAddress.getAllByName(host).toList() }.getOrNull()
+        val resolvesOnlyToLocalAddresses = !resolved.isNullOrEmpty() && resolved.all {
             it.isAnyLocalAddress || it.isLoopbackAddress || it.isLinkLocalAddress || it.isSiteLocalAddress
-        } == true
-        require(localSuffix || privateAddress) {
-            "For privacy, AI-FUSION only sends robot credentials to a local/private network address."
+        }
+        require(resolvesOnlyToLocalAddresses) {
+            "For privacy, AI-FUSION only sends robot credentials to a host that resolves to local/private addresses."
         }
         require(uri.scheme.equals("http", true) || uri.scheme.equals("https", true)) {
             "Only HTTP or HTTPS is supported."
