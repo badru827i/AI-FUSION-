@@ -76,6 +76,11 @@ dependencies {
     androidTestImplementation(composeBom)
 
     implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("com.google.mlkit:face-detection:16.1.7")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.compose.ui:ui")
