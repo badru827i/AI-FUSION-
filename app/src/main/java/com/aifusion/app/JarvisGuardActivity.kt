@@ -149,7 +149,7 @@ class JarvisGuardActivity : FragmentActivity() {
         }
     }
 
-    fun beginScan(
+    internal fun beginScan(
         previewView: PreviewView,
         mode: JarvisScanMode,
         statusCallback: (String) -> Unit,
