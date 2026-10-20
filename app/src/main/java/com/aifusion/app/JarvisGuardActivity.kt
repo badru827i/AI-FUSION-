@@ -343,8 +343,7 @@ class JarvisGuardActivity : FragmentActivity() {
                     val template = LocalFaceEmbedder.averageEmbeddings(samples.toList())
                     vault.saveOwnerTemplate(template)
                     scanMode = JarvisScanMode.OFF
-                    cameraProvider?.unbindAll()
-                    ownerSink?.invoke(true)
+                    runOnUiThread { cameraProvider?.unbindAll(); ownerSink?.invoke(true) }
                     sendStatus("Profil pemilik disimpan secara terenkripsi. Imej kamera tidak disimpan.")
                 } else {
                     sendStatus("Sampel pemilik " + samples.size + "/5 · gerakkan kepala perlahan ke kiri dan kanan.")
@@ -365,8 +364,7 @@ class JarvisGuardActivity : FragmentActivity() {
                 }
                 if (matchStreak >= 3 && yawRange >= 15f) {
                     scanMode = JarvisScanMode.OFF
-                    cameraProvider?.unbindAll()
-                    verifiedSink?.invoke(true)
+                    runOnUiThread { cameraProvider?.unbindAll(); verifiedSink?.invoke(true) }
                     sendStatus("Wajah sepadan dengan profil pemilik. Pengesahan biometrik kedua masih diperlukan untuk robot.")
                 } else {
                     val score = (similarity * 100f).roundToInt()
