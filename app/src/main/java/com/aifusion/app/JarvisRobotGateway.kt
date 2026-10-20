@@ -42,7 +42,7 @@ internal object JarvisRobotGateway {
         val secret = decodeSecret(secretHex)
         val challengeResponse = request(baseUrl, "/api/v1/challenge", "GET", null)
         if (challengeResponse.first !in 200..299) {
-            return RobotGatewayResult(false, "ESP32 challenge failed (HTTP " + challengeResponse.first + ").", challengeResponse.first)
+            return@runCatching RobotGatewayResult(false, "ESP32 challenge failed (HTTP " + challengeResponse.first + ").", challengeResponse.first)
         }
 
         val nonce = JSONObject(challengeResponse.second).optString("nonce")
