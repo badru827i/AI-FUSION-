@@ -248,7 +248,7 @@ class JarvisGuardActivity : FragmentActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    @OptIn(ExperimentalGetImage::class)
+    @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
     private fun analyseFrame(proxy: ImageProxy) {
         if (scanMode == JarvisScanMode.OFF || !busy.compareAndSet(false, true)) {
             proxy.close()
