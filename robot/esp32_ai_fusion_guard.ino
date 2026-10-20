@@ -204,7 +204,9 @@ static void handleCommand() {
   if (counter == 0 || counter <= lastCounter) return sendError(409, "counter_replayed");
 
   String expectedProof;
-  const String signingMessage = "CMD|" + String((unsigned long long)counter) + "|" + command;
+  char counterText[24];
+  snprintf(counterText, sizeof(counterText), "%llu", (unsigned long long)counter);
+  const String signingMessage = "CMD|" + String(counterText) + "|" + command;
   if (!hmacFor(signingMessage, expectedProof) ||
       !constantTimeEqual(expectedProof, suppliedProof)) {
     return sendError(401, "proof_invalid");
