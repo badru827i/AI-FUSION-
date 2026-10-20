@@ -536,7 +536,7 @@ private fun JarvisGuardScreen(
         }
         pendingMode = mode
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            activity.beginScan(preview, mode, { status = it }, { faceVerified = it }, { ownerRegistered = it })
+            activity.beginScan(preview, mode, { status = it }, { acceptFaceResult(it) }, { ownerRegistered = it })
         } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
