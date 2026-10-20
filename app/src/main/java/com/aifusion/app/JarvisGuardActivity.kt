@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -96,6 +99,7 @@ class JarvisGuardActivity : FragmentActivity() {
     private var maxYaw = -Float.MAX_VALUE
     private var matchStreak = 0
     @Volatile private var statusSink: ((String) -> Unit)? = null
+    @Volatile private var modelInstallSink: ((Boolean, String) -> Unit)? = null
     @Volatile private var verifiedSink: ((Boolean) -> Unit)? = null
     @Volatile private var ownerSink: ((Boolean) -> Unit)? = null
     private var prompt: BiometricPrompt? = null
@@ -114,8 +118,8 @@ class JarvisGuardActivity : FragmentActivity() {
         val modelPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
                 runCatching { embedder.installModel(uri) }
-                    .onSuccess { sendStatus("Model muka disimpan secara setempat dan berjaya disemak.") }
-                    .onFailure { sendStatus("Model ditolak: " + (it.message ?: "format tidak disokong")) }
+                    .onSuccess { notifyModelInstalled(true, "Model muka disimpan secara setempat dan berjaya disemak.") }
+                    .onFailure { notifyModelInstalled(embedder.isReady, "Model ditolak: " + (it.message ?: "format tidak disokong")) }
             }
         }
 
@@ -130,6 +134,18 @@ class JarvisGuardActivity : FragmentActivity() {
                     onPickModel = { modelPicker.launch(arrayOf("application/octet-stream", "application/x-tflite", "*/*")) }
                 )
             }
+        }
+    }
+
+    fun configureUi(statusCallback: (String) -> Unit, modelCallback: (Boolean, String) -> Unit) {
+        statusSink = statusCallback
+        modelInstallSink = modelCallback
+    }
+
+    private fun notifyModelInstalled(ready: Boolean, message: String) {
+        runOnUiThread {
+            modelInstallSink?.invoke(ready, message)
+            statusSink?.invoke(message)
         }
     }
 
@@ -263,7 +279,7 @@ class JarvisGuardActivity : FragmentActivity() {
             return
         }
 
-        val task: Task<MutableList<Face>>? = detector?.process(input)
+        val task: Task<List<Face>>? = detector?.process(input)
         if (task == null) {
             proxy.close()
             busy.set(false)
@@ -468,6 +484,7 @@ private fun JarvisGuardScreen(
     onPickModel: () -> Unit
 ) {
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var modelReady by remember { mutableStateOf(initialModelReady) }
@@ -482,6 +499,13 @@ private fun JarvisGuardScreen(
         else "Model pengenalan muka belum dipasang. Pengesan muka sahaja tidak boleh mengenali pemilik."
     ) }
     var pendingMode by remember { mutableStateOf(JarvisScanMode.OFF) }
+    SideEffect {
+        activity.configureUi(
+            statusCallback = { status = it },
+            modelCallback = { ready, message -> modelReady = ready; status = message }
+        )
+    }
+
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -645,19 +669,25 @@ private fun JarvisGuardScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
                             robotSecret = activity.generateRobotKey()
-                            status = "Kunci baharu dijana. Simpan dalam app dan masukkan nilai sama ke firmware ESP32 sebelum pairing."
+                            status = "Kunci baharu dijana. Salin nilai yang sama ke firmware ESP32 sebelum pairing."
                         }) { Text("Jana kunci") }
                         TextButton(onClick = {
-                            runCatching {
-                                activity.vault.saveRobotEndpoint(endpoint)
-                                if (robotSecret.isNotBlank()) activity.vault.saveRobotSecret(robotSecret)
-                                robotSecretSaved = activity.vault.hasRobotSecret()
-                                robotSecret = ""
-                                status = "Tetapan disimpan dalam storan peribadi terenkripsi. Kunci tidak disegerakkan."
-                                robotSession = false
-                            }.onFailure { status = it.message ?: "Tetapan gagal disimpan." }
-                        }) { Text("Simpan") }
+                            if (robotSecret.isBlank()) status = "Jana atau masukkan kunci dahulu."
+                            else {
+                                clipboard.setText(AnnotatedString(robotSecret))
+                                status = "Kunci disalin ke clipboard. Jangan kongsi atau tampal ke repo awam."
+                            }
+                        }) { Text("Salin kunci") }
                     }
+                    TextButton(onClick = {
+                        runCatching {
+                            activity.vault.saveRobotEndpoint(endpoint)
+                            if (robotSecret.isNotBlank()) activity.vault.saveRobotSecret(robotSecret)
+                            robotSecretSaved = activity.vault.hasRobotSecret()
+                            status = "Tetapan disimpan dalam storan peribadi terenkripsi. Kunci tidak disegerakkan."
+                            robotSession = false
+                        }.onFailure { status = it.message ?: "Tetapan gagal disimpan." }
+                    }) { Text("Simpan tetapan") }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = {
                             scope.launch {
