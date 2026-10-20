@@ -543,13 +543,9 @@ private fun JarvisGuardScreen(
     }
 
     fun beginEnrollment() {
-        if (ownerRegistered) {
-            activity.promptStrongBiometric { success, message ->
-                status = message
-                if (success) begin(JarvisScanMode.ENROLL_OWNER)
-            }
-        } else {
-            begin(JarvisScanMode.ENROLL_OWNER)
+        activity.promptStrongBiometric { success, message ->
+            status = message
+            if (success) begin(JarvisScanMode.ENROLL_OWNER)
         }
     }
 
