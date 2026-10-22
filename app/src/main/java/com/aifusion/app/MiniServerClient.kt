@@ -121,12 +121,12 @@ object MiniServerClient {
             socket.soTimeout = 3500
             val nonce = ByteArray(16).also { SecureRandom().nextBytes(it) }
             val key = Base64.encodeToString(nonce, Base64.NO_WRAP)
-            val tokenQuery = URLEncoder.encode(token, "UTF-8")
             val hostHeader = if (uri.port >= 0) "$host:$port" else host
-            val request = "GET /ws?token=$tokenQuery HTTP/1.1\r\n" +
+            val request = "GET /ws HTTP/1.1\r\n" +
                 "Host: $hostHeader\r\n" +
                 "Upgrade: websocket\r\n" +
                 "Connection: Upgrade\r\n" +
+                "X-AI-FUSION-Token: $token\r\n" +
                 "Sec-WebSocket-Key: $key\r\n" +
                 "Sec-WebSocket-Version: 13\r\n\r\n"
             socket.getOutputStream().write(request.toByteArray(Charsets.US_ASCII))
