@@ -646,14 +646,13 @@ private fun AiFusionMainApp() {
             saveCurrent()
 
             runCatching {
-                val file = FusionToolRouter.build3D(context, clean)
                 context.startActivity(
-                    Intent(context, Fusion3DActivity::class.java).putExtra(
-                        Fusion3DActivity.EXTRA_MODEL_PATH,
-                        file.absolutePath
+                    Intent(context, TextTo3DStudioActivity::class.java).putExtra(
+                        TextTo3DStudioActivity.EXTRA_PROMPT,
+                        clean
                     )
                 )
-                status = "3D Tool • model siap • OBJ • local"
+                status = "3D Tool • Text-to-3D Studio • local"
             }.onFailure {
                 messages = messages.dropLast(1) + ChatMessage(
                     aiId,
