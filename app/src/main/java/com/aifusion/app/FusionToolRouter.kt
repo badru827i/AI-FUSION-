@@ -147,15 +147,32 @@ object FusionToolRouter {
     fun allTools(): List<ToolInfo> = registry
 
     fun detectTool(prompt: String): Tool {
-        val q = prompt.lowercase()
-        return registry
-            .asSequence()
+        val q = prompt.trim().lowercase()
+        if (q.isBlank()) return Tool.CHAT
+
+        // A bare hardware/topic word is not an instruction to open a monitor.
+        // Require an action phrase for generic CPU/RAM/GPU/NPU/network terms.
+        val monitoringIntent = listOf(
+            "monitor", "usage", "utilization", "percentage", "percent", "%",
+            "status", "check", "semak", "pantau", "penggunaan", "berapa banyak"
+        ).any { q.contains(it) }
+        val bareHardwareTopic = listOf("cpu", "ram", "gpu", "npu", "internet", "network")
+            .any { q == it || q == "apa itu $it" || q == "what is $it" }
+        if (bareHardwareTopic && !monitoringIntent) return Tool.CHAT
+
+        // Prefer the most specific phrase; stable ordering makes ties deterministic.
+        return registry.asSequence()
             .filter { it.tool != Tool.CHAT }
-            .sortedByDescending { info ->
-                info.keywords.maxOfOrNull { keyword -> if (q.contains(keyword)) keyword.length else 0 } ?: 0
+            .map { info ->
+                info to (info.keywords.maxOfOrNull { keyword ->
+                    if (q.contains(keyword.lowercase())) keyword.length else 0
+                } ?: 0)
             }
-            .firstOrNull { info -> info.keywords.any { q.contains(it) } }
-            ?.tool ?: Tool.CHAT
+            .filter { it.second > 0 }
+            .sortedWith(compareByDescending<Pair<ToolInfo, Int>> { it.second }
+                .thenBy { it.first.tool.ordinal })
+            .firstOrNull()
+            ?.first?.tool ?: Tool.CHAT
     }
 
     suspend fun execute(context: Context, tool: Tool, prompt: String): ToolResult {
@@ -210,14 +227,14 @@ object FusionToolRouter {
                 Tool.CHAT_EXPORT -> ToolResult(tool, true, "Chat Export ready; local history stays on-device.")
                 Tool.CHAT_SEARCH -> ToolResult(tool, true, "Chat Search ready; use History to search/open saved sessions.")
                 Tool.MODEL_IMPORT -> ToolResult(tool, true, "Model Manager supports up to 10 imported local models.")
-                Tool.MODEL_TEST -> ToolResult(tool, true, "Model Test supports ONNX and TFLite/LiteRT smoke tests from Model Manager.")
+                Tool.MODEL_TEST -> ToolResult(tool, false, "Model Test is not run by this text command. Open Model Manager and launch the actual ONNX/TFLite smoke test for the selected file.")
                 Tool.MODEL_SELECT -> {
                     val caps = DeviceOptimizer.detect(context)
                     ToolResult(tool, true, "Selected tier: ${caps.modelTier} • ${DeviceOptimizer.label(caps.mode)}.")
                 }
-                Tool.GGUF_INFERENCE -> ToolResult(tool, true, "GGUF inference is enabled when an imported GGUF model is available.")
-                Tool.ONNX_INFERENCE -> ToolResult(tool, true, "ONNX Runtime + NNAPI fallback is enabled.")
-                Tool.TFLITE_INFERENCE -> ToolResult(tool, true, "LiteRT/TFLite + XNNPACK/NNAPI fallback is enabled.")
+                Tool.GGUF_INFERENCE -> ToolResult(tool, false, "This registry action does not start inference by itself. Send a normal chat prompt; Chat Core selects a compatible imported GGUF model and runs LocalLlamaEngine.")
+                Tool.ONNX_INFERENCE -> ToolResult(tool, false, "Runtime availability is not an inference result. Run Model Test on an imported ONNX file to execute the real smoke inference.")
+                Tool.TFLITE_INFERENCE -> ToolResult(tool, false, "Runtime availability is not an inference result. Run Model Test on an imported TFLite/LiteRT file to execute the real smoke inference.")
                 Tool.DEVICE_SCAN -> {
                     val c = DeviceOptimizer.detect(context)
                     ToolResult(tool, true, "RAM ${c.ramMb} MB • CPU ${c.cpuCores} cores • GPU ${c.gpuApi} • NPU ${c.npuAvailable}.")
