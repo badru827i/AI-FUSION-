@@ -308,6 +308,7 @@ private fun NeuronFusionMark(modifier: Modifier = Modifier) {
     )
     Canvas(modifier = modifier) {
         val cyan = Color(0xFF8A9BFF)
+        val violet = Color(0xFFC18BFF)
         val white = Color(0xFFF1F2FF)
         val c = Offset(size.width / 2f, size.height / 2f)
         val scale = size.minDimension / 220f
@@ -325,8 +326,9 @@ private fun NeuronFusionMark(modifier: Modifier = Modifier) {
         )
         rotate(rotation, pivot = c) {
             links.forEachIndexed { index, pair ->
+                val linkColor = if (index % 4 == 0) violet else cyan
                 drawLine(
-                    color = cyan.copy(alpha = if (index % 3 == 0) 0.9f else 0.52f),
+                    color = linkColor.copy(alpha = if (index % 3 == 0) 0.9f else 0.52f),
                     start = points[pair.first],
                     end = points[pair.second],
                     strokeWidth = 1.5f * scale
@@ -335,7 +337,7 @@ private fun NeuronFusionMark(modifier: Modifier = Modifier) {
             points.forEachIndexed { index, point ->
                 val radius = if (index == 0) 5.2f else if (index % 3 == 0) 4f else 3f
                 drawCircle(
-                    color = cyan.copy(alpha = pulse),
+                    color = (if (index % 4 == 0) violet else cyan).copy(alpha = pulse),
                     radius = radius * scale * (if (index == 0) 1.12f else 1f),
                     center = point
                 )
@@ -367,7 +369,7 @@ private fun NeuronFusionMark(modifier: Modifier = Modifier) {
         spark.lineTo(c.x + 14f * scale, c.y - 7f * scale)
         spark.lineTo(c.x + 2f * scale, c.y - 7f * scale)
         spark.close()
-        drawPath(spark, color = cyan.copy(alpha = pulse))
+        drawPath(spark, color = violet.copy(alpha = pulse))
         drawPath(spark, color = white.copy(alpha = 0.9f), style = Stroke(width = 1.1f * scale))
     }
 }
