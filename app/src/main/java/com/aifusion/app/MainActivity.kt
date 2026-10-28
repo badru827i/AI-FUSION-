@@ -799,7 +799,16 @@ private fun AiFusionMainApp() {
                 localNeural ?: local
             }
         } else {
-            localNeural ?: local
+            localNeural ?: if (modelRoute.model?.format?.equals("ONNX", ignoreCase = true) == true) {
+                when (detectLanguage(clean)) {
+                    com.aifusion.app.core.ChatLanguage.BM ->
+                        "Model ONNX anda sudah diimport, tetapi belum boleh menjana chat dalam AI-FUSION. Ujian ONNX hanya mengesahkan input/output tensor; chatbot perlukan tokenizer yang sepadan, prompt template dan enjin penjanaan khusus untuk model ini. Tiada model GGUF chat aktif dan API online tidak digunakan. Kekalkan fail ini untuk tugas ONNX yang serasi, atau gunakan model GGUF chat buat sementara."
+                    com.aifusion.app.core.ChatLanguage.ENGLISH ->
+                        "Your ONNX model is imported, but AI-FUSION cannot generate chat from it yet. The ONNX smoke test only validates tensor inputs/outputs; chat requires a matching tokenizer, prompt template, and model-specific generation engine. No compatible GGUF chat model or online API is active. Keep this file for compatible ONNX tasks, or use a GGUF chat model for now."
+                    com.aifusion.app.core.ChatLanguage.MIXED ->
+                        "Model ONNX dah diimport, tapi AI-FUSION belum boleh guna model ini untuk chat. ONNX smoke test hanya check tensor input/output; chat perlukan tokenizer, prompt template dan generation engine yang sepadan. Buat masa ini guna model GGUF chat yang serasi atau kekalkan ONNX untuk task khusus."
+                }
+            } else local
         }
 
         // Send a lightweight authenticated handoff to Mini Server when configured.
