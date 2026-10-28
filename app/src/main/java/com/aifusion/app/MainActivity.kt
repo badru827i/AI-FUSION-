@@ -21,6 +21,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -92,6 +93,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -188,33 +190,33 @@ private fun AiFusionLaunchScreen() {
             Text(
                 text = "YOUR PERSONAL AI, REIMAGINED",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFF33D1FA),
+                color = Color(0xFF8A9BFF),
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = "One assistant. A world of possibilities.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF7A8FAE)
+                color = Color(0xFF8F9ABD)
             )
             Spacer(modifier = Modifier.height(30.dp))
             androidx.compose.material3.LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth(0.82f).height(3.dp).clip(RoundedCornerShape(8.dp)),
-                color = Color(0xFF33D1FA),
-                trackColor = Color(0xFF202F47)
+                color = Color(0xFF8A9BFF),
+                trackColor = Color(0xFF272F50)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "STARTING NEURAL CORE",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF33D1FA),
+                color = Color(0xFF8A9BFF),
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.weight(0.8f))
             Text(
                 text = "LOCAL-FIRST  •  SMART  •  READY",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF7A8FAE)
+                color = Color(0xFF8F9ABD)
             )
         }
     }
@@ -251,33 +253,33 @@ private fun AiFusionLoadingScreen() {
             Text(
                 text = "Connecting local intelligence…",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF7A8FAE)
+                color = Color(0xFF8F9ABD)
             )
             Spacer(modifier = Modifier.height(30.dp))
             androidx.compose.material3.LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(8.dp)),
-                color = Color(0xFF33D1FA),
-                trackColor = Color(0xFF202F47)
+                color = Color(0xFF8A9BFF),
+                trackColor = Color(0xFF272F50)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "INITIALIZING NEURAL CORE",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF33D1FA),
+                color = Color(0xFF8A9BFF),
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = "Chat Core 3.0  •  Smart Device Engine",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF7A8FAE)
+                color = Color(0xFF8F9ABD)
             )
             Spacer(modifier = Modifier.weight(0.9f))
             Text(
                 text = "LOCAL-FIRST  •  DEVICE OPTIMIZATION",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF7A8FAE)
+                color = Color(0xFF8F9ABD)
             )
         }
     }
@@ -305,8 +307,8 @@ private fun NeuronFusionMark(modifier: Modifier = Modifier) {
         label = "neuronRotation"
     )
     Canvas(modifier = modifier) {
-        val cyan = Color(0xFF33D1FA)
-        val white = Color(0xFFEAFBFF)
+        val cyan = Color(0xFF8A9BFF)
+        val white = Color(0xFFF1F2FF)
         val c = Offset(size.width / 2f, size.height / 2f)
         val scale = size.minDimension / 220f
         val points = listOf(
@@ -1240,13 +1242,14 @@ private fun AiFusionMainApp() {
                                     AppScreen.MODEL_MANAGER -> "Model Manager"
                                     AppScreen.SETTINGS -> "Settings"
                                 },
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF1F2FF)
                             )
                             if (screen == AppScreen.CHAT) {
                                 Text(
-                                    "Assistant",
+                                    "Assistant • Chat Core 3.0",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = Color(0xFF909CBD)
                                 )
                             }
                         }
@@ -1255,33 +1258,39 @@ private fun AiFusionMainApp() {
                         IconButton(
                             onClick = {
                                 if (screen == AppScreen.CHAT) {
-                                    scope.launch { drawerState.open() }
+                                    showToolMenu = true
                                 } else {
                                     screen = AppScreen.CHAT
                                 }
                             }
                         ) {
                             Icon(
-                                if (screen == AppScreen.CHAT) {
-                                    Icons.Outlined.Menu
-                                } else {
-                                    Icons.AutoMirrored.Outlined.ArrowBack
-                                },
-                                contentDescription = if (screen == AppScreen.CHAT) "Menu" else "Back"
+                                if (screen == AppScreen.CHAT) Icons.Outlined.AutoAwesome else Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = if (screen == AppScreen.CHAT) "AI tools" else "Back",
+                                tint = Color(0xFFA7B3FF)
                             )
                         }
                     },
                     actions = {
                         if (screen == AppScreen.CHAT) {
+                            IconButton(onClick = { screen = AppScreen.HISTORY }) {
+                                Icon(Icons.Outlined.Description, contentDescription = "Chat history", tint = Color(0xFFADB8FF))
+                            }
                             IconButton(onClick = { startNewChat() }) {
-                                Icon(Icons.Outlined.Add, contentDescription = "New chat")
+                                Icon(Icons.Outlined.Add, contentDescription = "New chat", tint = Color(0xFFADB8FF))
                             }
                         } else if (screen == AppScreen.DEVICE) {
                             IconButton(onClick = { showHardwareMonitor = true }) {
-                                Icon(Icons.Outlined.Memory, contentDescription = "Live hardware monitor")
+                                Icon(Icons.Outlined.Memory, contentDescription = "Live hardware monitor", tint = Color(0xFFADB8FF))
                             }
                         }
-                    }
+                    },
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF090D1A),
+                        titleContentColor = Color(0xFFF1F2FF),
+                        navigationIconContentColor = Color(0xFFA7B3FF),
+                        actionIconContentColor = Color(0xFFA7B3FF)
+                    )
                 )
             }
         ) { padding ->
@@ -1490,6 +1499,14 @@ private fun AiFusionMainApp() {
                                 showToolMenu = false
                                 generateLocalVideo()
                             }) { Text("Create Video • Local") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                screen = AppScreen.HISTORY
+                            }) { Text("Chat history") }
+                            TextButton(onClick = {
+                                showToolMenu = false
+                                screen = AppScreen.SETTINGS
+                            }) { Text("Settings") }
                             TextButton(onClick = {
                                 showToolMenu = false
                                 screen = AppScreen.SKILLS
@@ -1729,12 +1746,21 @@ private fun ChatHome(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF080B17),
+                        Color(0xFF0D1325),
+                        Color(0xFF090D1A)
+                    )
+                )
+            )
+    ) {
         HardwareStatusStrip(sample = hardwareSample)
         if (messages.isEmpty()) {
-            // Keep the welcome panel inside the space above the composer.
-            // EmptyState uses fillMaxSize(), so constrain it with a weighted Box;
-            // otherwise it can push the chat composer below the visible screen.
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 EmptyState(onOpenResearch, onOpen3D)
             }
@@ -1742,8 +1768,8 @@ private fun ChatHome(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(22.dp)
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 items(messages, key = { it.id }) { message ->
                     MessageBubble(message, onSpeak)
@@ -1751,29 +1777,39 @@ private fun ChatHome(
                 if (generating) {
                     item {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(start = 2.dp),
+                            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 18.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                modifier = Modifier.size(30.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primaryContainer
+                                modifier = Modifier.size(34.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                color = Color(0xFF20284A),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6377E8).copy(alpha = 0.45f))
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Outlined.AutoAwesome,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        modifier = Modifier.size(17.dp),
+                                        tint = Color(0xFFA9B5FF)
                                     )
                                 }
                             }
                             Spacer(Modifier.size(10.dp))
-                            Text(
-                                status.ifBlank { "AI sedang berfikir…" },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column {
+                                Text(
+                                    "AI-FUSION sedang berfikir",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFC4CCF4)
+                                )
+                                Spacer(Modifier.height(3.dp))
+                                Text(
+                                    status.ifBlank { "Memproses permintaan…" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF929DBD)
+                                )
+                            }
                         }
                     }
                 }
@@ -1795,49 +1831,54 @@ private fun ChatHome(
 @Composable
 private fun HardwareStatusStrip(sample: HardwareSample) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 7.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         @Composable
-        fun Metric(label: String, value: Int) {
+        fun Metric(label: String, value: Int, tint: Color) {
             Surface(
                 shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                )
+                color = Color(0xFF11192C).copy(alpha = 0.92f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, tint.copy(alpha = 0.34f))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
+                    Box(
+                        modifier = Modifier.size(5.dp).clip(CircleShape).background(tint)
+                    )
                     Text(
                         label,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color(0xFF9BA6C8)
                     )
                     Text(
                         "$value%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFFE9ECFF)
                     )
                 }
             }
         }
-        Metric("CPU", sample.cpuPercent.coerceIn(0f, 100f).toInt())
-        Metric("GPU", (sample.gpuPercent ?: 0f).coerceIn(0f, 100f).toInt())
-        Metric("NPU", (sample.npuPercent ?: 0f).coerceIn(0f, 100f).toInt())
+
+        Metric("CPU", sample.cpuPercent.coerceIn(0f, 100f).toInt(), Color(0xFF8EA0FF))
+        sample.gpuPercent?.takeIf { it > 0f }?.let {
+            Metric("GPU", it.coerceIn(0f, 100f).toInt(), Color(0xFFC18BFF))
+        }
+        sample.npuPercent?.takeIf { it > 0f }?.let {
+            Metric("NPU", it.coerceIn(0f, 100f).toInt(), Color(0xFF72D9D0))
+        }
         Spacer(Modifier.weight(1f))
         Text(
-            "LOCAL-FIRST",
+            "LOCAL CORE",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
+            color = Color(0xFF9CA9FF),
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -1848,52 +1889,46 @@ private fun EmptyState(
     onOpen3D: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 18.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Surface(
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-            )
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(30.dp),
+            color = Color(0xFF11182C).copy(alpha = 0.88f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6B7FF0).copy(alpha = 0.34f))
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Outlined.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                NeuronFusionMark(modifier = Modifier.size(94.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    "AI-FUSION ASSISTANT",
-                    style = MaterialTheme.typography.labelSmall,
+                    "AI-FUSION",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color(0xFFA8B4FF)
+                )
+                Spacer(Modifier.height(9.dp))
+                Text(
+                    "Apa yang ingin kita selesaikan hari ini?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFF1F2FF),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Tanya, kaji sumber atau cipta sesuatu. AI-FUSION sedia membantu.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFA5AEC9),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            "Apa yang boleh saya bantu?",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Tanya apa sahaja. Kita boleh fikir, mencari dan mencipta bersama.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(Modifier.height(26.dp))
+        Spacer(Modifier.height(14.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickCard(Icons.Outlined.Public, "Research", { onOpenResearch("") }, Modifier.weight(1f))
             QuickCard(Icons.Outlined.AutoAwesome, "Create", { onOpenResearch("Create: ") }, Modifier.weight(1f))
@@ -1903,11 +1938,12 @@ private fun EmptyState(
             QuickCard(Icons.Outlined.ViewInAr, "3D Design", onOpen3D, Modifier.weight(1f))
             QuickCard(Icons.Outlined.AttachFile, "Files & Vision", { onOpenResearch("Files: ") }, Modifier.weight(1f))
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
-            "Tip: taip mesej di bawah untuk mula berbual",
+            "Tekan + untuk semua tools dan model tempatan",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+            color = Color(0xFF818CAB),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
@@ -1921,19 +1957,31 @@ private fun QuickCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(68.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-        )
+        modifier = modifier.height(66.dp),
+        shape = RoundedCornerShape(19.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF141D34).copy(alpha = 0.96f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF485B9C).copy(alpha = 0.48f))
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 13.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(9.dp)
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(19.dp))
-            Text(title, style = MaterialTheme.typography.labelLarge)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF26305A),
+                modifier = Modifier.size(34.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFA9B6FF))
+                }
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFE4E8FF)
+            )
         }
     }
 }
@@ -1946,14 +1994,15 @@ private fun MessageBubble(message: ChatMessage, onSpeak: (String) -> Unit) {
             horizontalArrangement = Arrangement.End
         ) {
             Surface(
-                modifier = Modifier.fillMaxWidth(0.88f),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.primary
+                modifier = Modifier.fillMaxWidth(0.9f),
+                shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 7.dp),
+                color = Color(0xFF293A83),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF7589FF).copy(alpha = 0.42f))
             ) {
                 Text(
                     message.text.ifBlank { "…" },
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    color = Color(0xFFF3F4FF),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -1964,41 +2013,54 @@ private fun MessageBubble(message: ChatMessage, onSpeak: (String) -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Surface(
-                modifier = Modifier.size(30.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer
+                modifier = Modifier.size(34.dp),
+                shape = RoundedCornerShape(13.dp),
+                color = Color(0xFF20284A),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6579E8).copy(alpha = 0.42f))
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Outlined.AutoAwesome,
-                        contentDescription = "AI",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentDescription = "AI-FUSION",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color(0xFFADB8FF)
                     )
                 }
             }
             Spacer(Modifier.size(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "AI-FUSION",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    message.text.ifBlank { "…" },
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                if (message.text.isNotBlank()) {
-                    IconButton(
-                        onClick = { onSpeak(message.text) },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Outlined.Speaker,
-                            contentDescription = "Read answer",
-                            modifier = Modifier.size(17.dp)
-                        )
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(topStart = 7.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp),
+                color = Color(0xFF11192B).copy(alpha = 0.95f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF344269).copy(alpha = 0.7f))
+            ) {
+                Column(modifier = Modifier.padding(start = 15.dp, end = 11.dp, top = 13.dp, bottom = 5.dp)) {
+                    Text(
+                        "AI-FUSION",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFABB7FF)
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        message.text.ifBlank { "…" },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFE6E9F7)
+                    )
+                    if (message.text.isNotBlank()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            IconButton(
+                                onClick = { onSpeak(message.text) },
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Speaker,
+                                    contentDescription = "Read answer aloud",
+                                    modifier = Modifier.size(17.dp),
+                                    tint = Color(0xFF9EABF5)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -2017,57 +2079,80 @@ private fun Composer(
 ) {
     Surface(
         modifier = modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(26.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 2.dp
+        shape = RoundedCornerShape(27.dp),
+        color = Color(0xFF11182A).copy(alpha = 0.98f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF5868B6).copy(alpha = 0.55f)),
+        tonalElevation = 0.dp,
+        shadowElevation = 7.dp
     ) {
-        Row(
-            modifier = Modifier.padding(start = 3.dp, end = 5.dp, top = 3.dp, bottom = 3.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            IconButton(onClick = onTools, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Outlined.Add, contentDescription = "Tools")
+        Column(modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFA4B0FF))
+                    Text(
+                        "AI-FUSION",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFADB7FF)
+                    )
+                }
+                Text(
+                    "LOCAL-FIRST",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF7F8DB6)
+                )
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                IconButton(onClick = onTools, modifier = Modifier.size(42.dp)) {
+                    Icon(Icons.Outlined.Add, contentDescription = "All tools", tint = Color(0xFFABB7FF))
+                }
 
-            androidx.compose.foundation.text.BasicTextField(
-                value = draft,
-                onValueChange = onDraftChange,
-                modifier = Modifier.weight(1f).padding(horizontal = 7.dp, vertical = 12.dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                singleLine = false,
-                maxLines = 6,
-                decorationBox = { inner ->
-                    Box {
-                        if (draft.isBlank()) {
-                            Text(
-                                "Message AI-FUSION",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                androidx.compose.foundation.text.BasicTextField(
+                    value = draft,
+                    onValueChange = onDraftChange,
+                    modifier = Modifier.weight(1f).padding(horizontal = 7.dp, vertical = 11.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFF1F2FF)),
+                    singleLine = false,
+                    maxLines = 6,
+                    decorationBox = { inner ->
+                        Box {
+                            if (draft.isBlank()) {
+                                Text(
+                                    "Mesej AI-FUSION…",
+                                    color = Color(0xFF828DAC)
+                                )
+                            }
+                            inner()
+                        }
+                    }
+                )
+
+                if (draft.isBlank()) {
+                    IconButton(onClick = onVoice, modifier = Modifier.size(42.dp)) {
+                        Icon(Icons.Outlined.Mic, contentDescription = "Voice input", tint = Color(0xFFABB7FF))
+                    }
+                } else {
+                    Surface(
+                        modifier = Modifier.size(42.dp).clip(CircleShape).clickable(onClick = onSend),
+                        shape = CircleShape,
+                        color = Color(0xFF5B6CF4),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA0A9FF).copy(alpha = 0.55f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.Send,
+                                contentDescription = "Send",
+                                modifier = Modifier.size(18.dp),
+                                tint = Color.White
                             )
                         }
-                        inner()
-                    }
-                }
-            )
-
-            if (draft.isBlank()) {
-                IconButton(onClick = onVoice, modifier = Modifier.size(44.dp)) {
-                    Icon(Icons.Outlined.Mic, contentDescription = "Voice")
-                }
-            } else {
-                Surface(
-                    modifier = Modifier.size(42.dp).clip(CircleShape).clickable(onClick = onSend),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.Send,
-                            contentDescription = "Send",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
                     }
                 }
             }
