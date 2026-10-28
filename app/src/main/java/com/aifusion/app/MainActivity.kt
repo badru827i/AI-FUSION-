@@ -776,7 +776,7 @@ private fun AiFusionMainApp() {
                     context = context,
                     modelUri = android.net.Uri.parse(localGgufModel.uri),
                     modelName = localGgufModel.name,
-                    prompt = clean,
+                    prompt = agentPlan.instructions + "\n\nUser request:\n" + clean,
                     capabilities = capabilities
                 )
             }.getOrNull()
