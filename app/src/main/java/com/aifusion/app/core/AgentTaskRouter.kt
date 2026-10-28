@@ -13,7 +13,7 @@ object AgentTaskRouter {
         val specialist: Specialist,
         val skillName: String,
         val instructions: String,
-        val needsLiveResearch: Boolean
+        val needsLiveResearch: Boolean = false
     )
 
     fun route(query: String): Plan {
