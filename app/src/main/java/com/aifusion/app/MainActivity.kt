@@ -759,10 +759,12 @@ private fun AiFusionMainApp() {
         var onlineUsed = false
         var onlineFailed = false
         var remoteErrorMessage = ""
+        val agentPlan = com.aifusion.app.core.AgentTaskRouter.route(clean)
         val modelRoute = ModelChatRouter.route(models, capabilities)
         val localGgufModel = modelRoute.model?.takeIf { modelRoute.chatCapable }
-        val asksForWeb = listOf("terkini", "latest", "current", "cari", "search", "web")
-            .any { clean.contains(it, ignoreCase = true) }
+        val asksForWeb = agentPlan.needsLiveResearch ||
+            listOf("terkini", "latest", "current", "cari", "search", "web")
+                .any { clean.contains(it, ignoreCase = true) }
         val shouldTryRemote = aiApiKey.isNotBlank() &&
             (localGgufModel == null || asksForWeb)
 
@@ -786,7 +788,8 @@ private fun AiFusionMainApp() {
                 val answer = AiChatClient.generateReply(
                     apiKey = aiApiKey.trim(),
                     model = aiModel.trim(),
-                    conversation = conversationForModel
+                    conversation = conversationForModel,
+                    taskInstructions = agentPlan.instructions
                 )
                 onlineUsed = true
                 answer
