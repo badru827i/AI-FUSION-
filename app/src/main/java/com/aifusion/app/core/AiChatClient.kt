@@ -14,7 +14,8 @@ object AiChatClient {
     suspend fun generateReply(
         apiKey: String,
         model: String,
-        conversation: List<ChatMessage>
+        conversation: List<ChatMessage>,
+        taskInstructions: String = ""
     ): String = withContext(Dispatchers.IO) {
         require(apiKey.isNotBlank()) { "Missing API key" }
 
@@ -40,7 +41,8 @@ object AiChatClient {
                 "You are AI-FUSION Assistant. Be helpful, concise and practical. " +
                     "Match the user's language (Malay, English, or mixed). " +
                     "For Android, AI, Blender, Roblox and coding questions, give clear step-by-step guidance. " +
-                    "Do not claim to have performed actions that you did not perform."
+                    "Do not claim to have performed actions that you did not perform. " +
+                    taskInstructions.trim()
             )
             put("input", input)
         }
