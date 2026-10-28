@@ -76,7 +76,7 @@ object ModelChatRouter {
                 model = onnx,
                 label = "ONNX tool model • ${onnx.name}",
                 chatCapable = false,
-                reason = "ONNX is imported for task-specific inference; generic chat needs a compatible tokenizer and generation runtime."
+                reason = "This ONNX file is imported, but AI-FUSION has no ONNX text-generation adapter for it. ONNX Runtime smoke inference only checks tensor inputs/outputs; chat requires a compatible tokenizer, prompt template, model-specific generation loop and KV-cache handling."
             )
         }
 
