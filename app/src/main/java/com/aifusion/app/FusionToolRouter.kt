@@ -258,6 +258,33 @@ object FusionToolRouter {
                     ToolResult(tool, state.connected, "Network: ${NetworkGuardian.label(state)} • connected=${state.connected} • metered=${state.metered}.")
                 }
                 Tool.SHARE_FILE -> ToolResult(tool, true, "Share File uses Android FileProvider for generated local artifacts.")
+                Tool.APP_OPEN -> {
+                    val result = UniversalAppConnector.launchApp(context, extractAppTarget(prompt))
+                    ToolResult(tool, result.success, result.message)
+                }
+                Tool.APP_LIST -> {
+                    val apps = UniversalAppConnector.installedApps(context)
+                    val preview = apps.take(18).joinToString("\\n") { "• ${it.label}" }
+                    val suffix = if (apps.size > 18) "\\n… dan ${apps.size - 18} aplikasi lagi." else ""
+                    ToolResult(tool, apps.isNotEmpty(), "Dikesan ${apps.size} aplikasi:\\n$preview$suffix")
+                }
+                Tool.APP_SHARE_TEXT -> {
+                    val result = UniversalAppConnector.shareText(context, extractSharePayload(prompt))
+                    ToolResult(tool, result.success, result.message)
+                }
+                Tool.APP_OPEN_URL -> {
+                    val result = UniversalAppConnector.openUrl(context, extractUrlPayload(prompt))
+                    ToolResult(tool, result.success, result.message)
+                }
+                Tool.OPEN_SYSTEM_SETTINGS -> {
+                    val page = when {
+                        prompt.contains("wifi", ignoreCase = true) -> UniversalAppConnector.SettingsPage.WIFI
+                        prompt.contains("bluetooth", ignoreCase = true) -> UniversalAppConnector.SettingsPage.BLUETOOTH
+                        else -> UniversalAppConnector.SettingsPage.GENERAL
+                    }
+                    val result = UniversalAppConnector.openSettings(context, page)
+                    ToolResult(tool, result.success, result.message)
+                }
             }
         }.getOrElse { error ->
             ToolResult(tool, false, "Tool error: ${error.message ?: "unknown error"}")
