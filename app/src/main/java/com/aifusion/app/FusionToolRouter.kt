@@ -159,6 +159,8 @@ object FusionToolRouter {
 
     fun detectTool(prompt: String): Tool {
         val q = prompt.lowercase()
+        if (q.startsWith("buka http") || q.startsWith("buka https") ||
+            q.startsWith("open http") || q.startsWith("open https")) return Tool.APP_OPEN_URL
         return registry
             .asSequence()
             .filter { it.tool != Tool.CHAT }
@@ -289,6 +291,39 @@ object FusionToolRouter {
         }.getOrElse { error ->
             ToolResult(tool, false, "Tool error: ${error.message ?: "unknown error"}")
         }
+    }
+
+    private fun extractAppTarget(prompt: String): String {
+        val clean = prompt.trim().trimEnd('.', '!', '?')
+        val prefixes = listOf(
+            "tolong buka aplikasi ", "buka aplikasi ", "buka app ",
+            "please open application ", "open application ", "open app ",
+            "launch app ", "jalankan aplikasi ", "buka ", "open ", "launch ", "jalankan "
+        )
+        val prefix = prefixes.firstOrNull { clean.startsWith(it, ignoreCase = true) }
+        return prefix?.let { clean.substring(it.length).trim() }.orEmpty()
+    }
+
+    private fun extractSharePayload(prompt: String): String {
+        val colon = prompt.indexOf(':')
+        if (colon >= 0) return prompt.substring(colon + 1).trim()
+        val markers = listOf("kongsi teks", "share text", "kongsi mesej", "share message")
+        val marker = markers.firstOrNull { prompt.contains(it, ignoreCase = true) }
+        return marker?.let {
+            prompt.substring(prompt.indexOf(it, ignoreCase = true) + it.length).trim()
+        }.orEmpty()
+    }
+
+    private fun extractUrlPayload(prompt: String): String {
+        val url = prompt.split(Regex("\\s+"))
+            .firstOrNull { it.startsWith("http://", true) || it.startsWith("https://", true) }
+            ?.trimEnd('.', ',', ')', ']', '!')
+        if (!url.isNullOrBlank()) return url
+        val markers = listOf("buka pautan", "open link", "buka link", "open url", "buka url")
+        val marker = markers.firstOrNull { prompt.contains(it, ignoreCase = true) }
+        return marker?.let {
+            prompt.substring(prompt.indexOf(it, ignoreCase = true) + it.length).trim()
+        }.orEmpty()
     }
 
     private fun readSite(prompt: String): String? {
