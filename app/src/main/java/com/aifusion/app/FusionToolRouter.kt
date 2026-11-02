@@ -147,7 +147,12 @@ object FusionToolRouter {
         ToolInfo(Tool.PDF_READ, "PDF Reader", "PDF file capability/status; parser is activated when a PDF is supplied", listOf("pdf", "baca pdf")),
         ToolInfo(Tool.IMAGE_METADATA, "Image Metadata", "Inspect image dimensions/type when a URI is supplied", listOf("image metadata", "metadata gambar")),
         ToolInfo(Tool.NETWORK_TEST, "Network Test", "Check phone connectivity and latency path", listOf("network test", "test internet", "uji internet")),
-        ToolInfo(Tool.SHARE_FILE, "Share File", "Prepare Android share action for generated files", listOf("share file", "kongsi fail", "share"))
+        ToolInfo(Tool.SHARE_FILE, "Share File", "Prepare Android share action for generated files", listOf("share file", "kongsi fail", "share")),
+        ToolInfo(Tool.APP_OPEN, "Open App", "Launch an installed Android app by visible name", listOf("buka aplikasi", "open application", "open app", "launch app", "jalankan aplikasi", "buka youtube", "open youtube", "buka whatsapp", "open whatsapp", "buka chrome", "open chrome", "buka telegram", "open telegram", "buka tiktok", "open tiktok", "buka instagram", "open instagram", "buka spotify", "open spotify", "buka gmail", "open gmail", "buka maps", "open maps")),
+        ToolInfo(Tool.APP_LIST, "Installed Apps", "List apps visible to Android launcher", listOf("senarai aplikasi", "list installed apps", "list apps", "aplikasi yang ada")),
+        ToolInfo(Tool.APP_SHARE_TEXT, "Share Text", "Open Android share chooser for user-reviewed text sharing", listOf("kongsi teks", "share text", "kongsi mesej", "share message")),
+        ToolInfo(Tool.APP_OPEN_URL, "Open Link", "Open an HTTP or HTTPS link", listOf("buka pautan", "open link", "buka link", "open url", "buka url")),
+        ToolInfo(Tool.OPEN_SYSTEM_SETTINGS, "Open Settings", "Open Android Wi-Fi, Bluetooth or general settings", listOf("buka tetapan wifi", "open wifi settings", "buka wifi", "buka tetapan bluetooth", "open bluetooth settings", "buka bluetooth", "buka tetapan", "open settings"))
     )
 
     fun allTools(): List<ToolInfo> = registry
