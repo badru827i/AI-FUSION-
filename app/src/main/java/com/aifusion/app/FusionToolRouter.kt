@@ -266,9 +266,9 @@ object FusionToolRouter {
                 }
                 Tool.APP_LIST -> {
                     val apps = UniversalAppConnector.installedApps(context)
-                    val preview = apps.take(18).joinToString("\\n") { "• ${it.label}" }
-                    val suffix = if (apps.size > 18) "\\n… dan ${apps.size - 18} aplikasi lagi." else ""
-                    ToolResult(tool, apps.isNotEmpty(), "Dikesan ${apps.size} aplikasi:\\n$preview$suffix")
+                    val preview = apps.take(18).joinToString("\n") { "• ${it.label}" }
+                    val suffix = if (apps.size > 18) "\n… dan ${apps.size - 18} aplikasi lagi." else ""
+                    ToolResult(tool, apps.isNotEmpty(), "Dikesan ${apps.size} aplikasi:\n$preview$suffix")
                 }
                 Tool.APP_SHARE_TEXT -> {
                     val result = UniversalAppConnector.shareText(context, extractSharePayload(prompt))
