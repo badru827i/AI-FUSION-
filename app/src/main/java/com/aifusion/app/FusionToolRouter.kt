@@ -12,6 +12,7 @@ import com.aifusion.app.core.FactVerificationEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ResearchCore
 import com.aifusion.app.core.ResourceManager
+import com.aifusion.app.integration.UniversalAppConnector
 
 /**
  * AI-FUSION 45-tool registry.
@@ -73,7 +74,12 @@ object FusionToolRouter {
         PDF_READ,
         IMAGE_METADATA,
         NETWORK_TEST,
-        SHARE_FILE
+        SHARE_FILE,
+        APP_OPEN,
+        APP_LIST,
+        APP_SHARE_TEXT,
+        APP_OPEN_URL,
+        OPEN_SYSTEM_SETTINGS
     }
 
     data class ToolInfo(
