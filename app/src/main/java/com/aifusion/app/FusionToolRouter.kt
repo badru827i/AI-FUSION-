@@ -12,6 +12,7 @@ import com.aifusion.app.core.FactVerificationEngine
 import com.aifusion.app.core.NetworkGuardian
 import com.aifusion.app.core.ResearchCore
 import com.aifusion.app.core.ResourceManager
+import com.aifusion.app.integration.UniversalAppConnector
 
 /**
  * AI-FUSION 45-tool registry.
@@ -73,7 +74,12 @@ object FusionToolRouter {
         PDF_READ,
         IMAGE_METADATA,
         NETWORK_TEST,
-        SHARE_FILE
+        SHARE_FILE,
+        APP_OPEN,
+        APP_LIST,
+        APP_SHARE_TEXT,
+        APP_OPEN_URL,
+        OPEN_SYSTEM_SETTINGS
     }
 
     data class ToolInfo(
@@ -141,13 +147,20 @@ object FusionToolRouter {
         ToolInfo(Tool.PDF_READ, "PDF Reader", "PDF file capability/status; parser is activated when a PDF is supplied", listOf("pdf", "baca pdf")),
         ToolInfo(Tool.IMAGE_METADATA, "Image Metadata", "Inspect image dimensions/type when a URI is supplied", listOf("image metadata", "metadata gambar")),
         ToolInfo(Tool.NETWORK_TEST, "Network Test", "Check phone connectivity and latency path", listOf("network test", "test internet", "uji internet")),
-        ToolInfo(Tool.SHARE_FILE, "Share File", "Prepare Android share action for generated files", listOf("share file", "kongsi fail", "share"))
+        ToolInfo(Tool.SHARE_FILE, "Share File", "Prepare Android share action for generated files", listOf("share file", "kongsi fail", "share")),
+        ToolInfo(Tool.APP_OPEN, "Open App", "Launch an installed Android app by visible name", listOf("buka aplikasi", "open application", "open app", "launch app", "jalankan aplikasi", "buka youtube", "open youtube", "buka whatsapp", "open whatsapp", "buka chrome", "open chrome", "buka telegram", "open telegram", "buka tiktok", "open tiktok", "buka instagram", "open instagram", "buka spotify", "open spotify", "buka gmail", "open gmail", "buka maps", "open maps")),
+        ToolInfo(Tool.APP_LIST, "Installed Apps", "List apps visible to Android launcher", listOf("senarai aplikasi", "list installed apps", "list apps", "aplikasi yang ada")),
+        ToolInfo(Tool.APP_SHARE_TEXT, "Share Text", "Open Android share chooser for user-reviewed text sharing", listOf("kongsi teks", "share text", "kongsi mesej", "share message")),
+        ToolInfo(Tool.APP_OPEN_URL, "Open Link", "Open an HTTP or HTTPS link", listOf("buka pautan", "open link", "buka link", "open url", "buka url")),
+        ToolInfo(Tool.OPEN_SYSTEM_SETTINGS, "Open Settings", "Open Android Wi-Fi, Bluetooth or general settings", listOf("buka tetapan wifi", "open wifi settings", "buka wifi", "buka tetapan bluetooth", "open bluetooth settings", "buka bluetooth", "buka tetapan", "open settings"))
     )
 
     fun allTools(): List<ToolInfo> = registry
 
     fun detectTool(prompt: String): Tool {
         val q = prompt.lowercase()
+        if (q.startsWith("buka http") || q.startsWith("buka https") ||
+            q.startsWith("open http") || q.startsWith("open https")) return Tool.APP_OPEN_URL
         return registry
             .asSequence()
             .filter { it.tool != Tool.CHAT }
@@ -247,10 +260,70 @@ object FusionToolRouter {
                     ToolResult(tool, state.connected, "Network: ${NetworkGuardian.label(state)} • connected=${state.connected} • metered=${state.metered}.")
                 }
                 Tool.SHARE_FILE -> ToolResult(tool, true, "Share File uses Android FileProvider for generated local artifacts.")
+                Tool.APP_OPEN -> {
+                    val result = UniversalAppConnector.launchApp(context, extractAppTarget(prompt))
+                    ToolResult(tool, result.success, result.message)
+                }
+                Tool.APP_LIST -> {
+                    val apps = UniversalAppConnector.installedApps(context)
+                    val preview = apps.take(18).joinToString("\n") { "• ${it.label}" }
+                    val suffix = if (apps.size > 18) "\n… dan ${apps.size - 18} aplikasi lagi." else ""
+                    ToolResult(tool, apps.isNotEmpty(), "Dikesan ${apps.size} aplikasi:\n$preview$suffix")
+                }
+                Tool.APP_SHARE_TEXT -> {
+                    val result = UniversalAppConnector.shareText(context, extractSharePayload(prompt))
+                    ToolResult(tool, result.success, result.message)
+                }
+                Tool.APP_OPEN_URL -> {
+                    val result = UniversalAppConnector.openUrl(context, extractUrlPayload(prompt))
+                    ToolResult(tool, result.success, result.message)
+                }
+                Tool.OPEN_SYSTEM_SETTINGS -> {
+                    val page = when {
+                        prompt.contains("wifi", ignoreCase = true) -> UniversalAppConnector.SettingsPage.WIFI
+                        prompt.contains("bluetooth", ignoreCase = true) -> UniversalAppConnector.SettingsPage.BLUETOOTH
+                        else -> UniversalAppConnector.SettingsPage.GENERAL
+                    }
+                    val result = UniversalAppConnector.openSettings(context, page)
+                    ToolResult(tool, result.success, result.message)
+                }
             }
         }.getOrElse { error ->
             ToolResult(tool, false, "Tool error: ${error.message ?: "unknown error"}")
         }
+    }
+
+    private fun extractAppTarget(prompt: String): String {
+        val clean = prompt.trim().trimEnd('.', '!', '?')
+        val prefixes = listOf(
+            "tolong buka aplikasi ", "buka aplikasi ", "buka app ",
+            "please open application ", "open application ", "open app ",
+            "launch app ", "jalankan aplikasi ", "buka ", "open ", "launch ", "jalankan "
+        )
+        val prefix = prefixes.firstOrNull { clean.startsWith(it, ignoreCase = true) }
+        return prefix?.let { clean.substring(it.length).trim() }.orEmpty()
+    }
+
+    private fun extractSharePayload(prompt: String): String {
+        val colon = prompt.indexOf(':')
+        if (colon >= 0) return prompt.substring(colon + 1).trim()
+        val markers = listOf("kongsi teks", "share text", "kongsi mesej", "share message")
+        val marker = markers.firstOrNull { prompt.contains(it, ignoreCase = true) }
+        return marker?.let {
+            prompt.substring(prompt.indexOf(it, ignoreCase = true) + it.length).trim()
+        }.orEmpty()
+    }
+
+    private fun extractUrlPayload(prompt: String): String {
+        val url = prompt.split(Regex("\\s+"))
+            .firstOrNull { it.startsWith("http://", true) || it.startsWith("https://", true) }
+            ?.trimEnd('.', ',', ')', ']', '!')
+        if (!url.isNullOrBlank()) return url
+        val markers = listOf("buka pautan", "open link", "buka link", "open url", "buka url")
+        val marker = markers.firstOrNull { prompt.contains(it, ignoreCase = true) }
+        return marker?.let {
+            prompt.substring(prompt.indexOf(it, ignoreCase = true) + it.length).trim()
+        }.orEmpty()
     }
 
     private fun readSite(prompt: String): String? {
